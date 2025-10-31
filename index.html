@@ -197,13 +197,6 @@
         function processData(data) {
             const processed = {};
             data.forEach(row => {
-                // Column mapping (0-indexed):
-                // C (index 2) = Employees (Chatter name)
-                // D (index 3) = Creators (Model)
-                // I (index 8) = Direct messages sent (Messages sent)
-                // J (index 9) = Direct PPVs sent (PPVs sent)
-                // L (index 11) = PPVs unlocked (PPVs open)
-                // P (index 15) = Fans chatted (Fans chatted with)
                 const chatter = row['Employees'];
                 const model = row['Creators'];
                 const messagesSent = parseInt(row['Direct messages sent']) || 0;
@@ -222,7 +215,6 @@
                         ppvsOpen
                     };
                 } else {
-                    // Sum up if there are multiple entries for same chatter-model combo
                     processed[key].fansChatted += fansChatted;
                     processed[key].messagesSent += messagesSent;
                     processed[key].ppvsSent += ppvsSent;
@@ -253,9 +245,8 @@
             { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-400', text: 'text-indigo-900 dark:text-indigo-100' },
             { bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-400', text: 'text-rose-900 dark:text-rose-100' }
         ];
-        // Create table HTML - 4 models per row with fixed sizing
+        // Create table HTML
         function createChatterTable(chatter, modelsData, quarterLabels) {
-            // Sort models alphabetically
             modelsData.sort((a, b) => a.model.localeCompare(b.model));
             const metrics = [
                 { label: 'Fans chatted with', key: 'fansChatted' },
@@ -263,10 +254,8 @@
                 { label: 'PPVs sent', key: 'ppvsSent' },
                 { label: 'PPVs open', key: 'ppvsOpen' }
             ];
-            // Always prepare for max 4 quarters (Q1, Q2, Q3, Q4) + Total
             const maxQuarters = 4;
             const allQuarterSlots = ['Q1', 'Q2', 'Q3', 'Q4'];
-            // Split models into rows of 3
             const modelsPerRow = 3;
             const modelRows = [];
             for (let i = 0; i < modelsData.length; i += modelsPerRow) {
@@ -279,9 +268,7 @@
                         <span class="text-xs opacity-75">${modelsData.length} model${modelsData.length > 1 ? 's' : ''}</span>
                     </div>
             `;
-            // Create a table for each row of models
             modelRows.forEach((rowModels, rowIdx) => {
-                // Pad row to 3 models with empty slots
                 while (rowModels.length < modelsPerRow) {
                     rowModels.push(null);
                 }
@@ -291,21 +278,16 @@
                             <thead class="bg-gray-100 dark:bg-gray-700">
                                 <tr>
                 `;
-                // Header row: Model names - each model section gets 33.33% width
                 rowModels.forEach((modelEntry, idx) => {
                     const colorIdx = (rowIdx * modelsPerRow + idx) % modelColors.length;
                     const color = modelColors[colorIdx];
                     if (modelEntry) {
-                        // Model name column
                         html += `<th rowspan="2" class="px-1 py-1 text-left font-semibold ${color.text} ${color.bg} border-b border-l border-t ${color.border}" style="width: 9%; border-width: 2px; white-space: nowrap;">${modelEntry.model}</th>`;
-                        // Quarter headers (4.5% each for 4 quarters)
                         allQuarterSlots.forEach(q => {
                             html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 dark:text-gray-200 ${color.bg} border-b border-t border-gray-300 dark:border-gray-600" style="width: 4.5%; border-width: 1px; white-space: nowrap;">${q}</th>`;
                         });
-                        // Total column (wider to fit larger totals)
                         html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 dark:text-gray-200 ${color.bg} border-b border-t border-r ${color.border}" style="width: 6.5%; border-width: 2px; white-space: nowrap;">Total</th>`;
                     } else {
-                        // Empty slot - takes full 33.33% width
                         html += `<th colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600" style="width: 33.33%; border-width: 1px;"></th>`;
                     }
                 });
@@ -314,22 +296,18 @@
                             </thead>
                             <tbody>
                 `;
-                // For each metric row
                 metrics.forEach((metric, metricIdx) => {
                     const isLastMetric = metricIdx === metrics.length - 1;
                     const rowBg = metricIdx % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-800/50';
                     html += `<tr class="${rowBg}">`;
-                    // For each model in this row, show the values for this metric
                     rowModels.forEach((modelEntry, idx) => {
                         const colorIdx = (rowIdx * modelsPerRow + idx) % modelColors.length;
                         const color = modelColors[colorIdx];
                         if (modelEntry) {
-                            // Metric label
                             const bottomBorder = isLastMetric ? `border-b ${color.border}` : '';
                             html += `<td class="px-1 py-1 text-gray-600 dark:text-gray-400 ${color.bg} font-medium border-l ${color.border} ${bottomBorder}" style="border-left-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${metric.label}</td>`;
                             let total = 0;
                             const quarterValues = [];
-                            // First pass: collect all quarter values
                             allQuarterSlots.forEach((quarterSlot, slotIdx) => {
                                 const quarterIdx = quarterLabels.indexOf(quarterSlot);
                                 let value = 0;
@@ -338,27 +316,21 @@
                                 }
                                 quarterValues.push(value);
                             });
-                            // Second pass: display with comparison indicators
                             allQuarterSlots.forEach((quarterSlot, slotIdx) => {
                                 const value = quarterValues[slotIdx];
                                 total += value;
                                 const displayValue = metric.isCurrency ? `$${value.toFixed(2)}` : value;
                                 let outlineStyle = '';
-                                // Compare with previous quarter (only if both current and previous have data)
                                 if (slotIdx > 0) {
                                     const prevQuarterIdx = quarterLabels.indexOf(allQuarterSlots[slotIdx - 1]);
                                     const currentQuarterIdx = quarterLabels.indexOf(quarterSlot);
-                                    // Only show indicator if both quarters have loaded data
                                     if (prevQuarterIdx >= 0 && currentQuarterIdx >= 0) {
                                         const prevValue = quarterValues[slotIdx - 1];
                                         if (value < prevValue) {
-                                            // Red circle outline for decrease
                                             outlineStyle = 'border: 2px solid #EF4444; border-radius: 50%; padding: 2px 6px; display: inline-block;';
                                         } else if (value === prevValue) {
-                                            // Orange circle outline for same
                                             outlineStyle = 'border: 2px solid #F97316; border-radius: 50%; padding: 2px 6px; display: inline-block;';
                                         } else {
-                                            // Green circle outline for increase
                                             outlineStyle = 'border: 2px solid #10B981; border-radius: 50%; padding: 2px 6px; display: inline-block;';
                                         }
                                     }
@@ -370,7 +342,6 @@
                             const displayTotal = metric.isCurrency ? `$${total.toFixed(2)}` : total;
                             html += `<td class="px-1 py-1 text-center font-bold text-gray-900 dark:text-gray-100 ${color.bg} border-r ${color.border} ${bottomBorder}" style="border-right-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTotal}</td>`;
                         } else {
-                            // Empty slot
                             html += `<td colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50 dark:bg-gray-800"></td>`;
                         }
                     });
@@ -390,10 +361,8 @@
             const errorContainer = document.getElementById('error-container');
             const errorMessage = document.getElementById('error-message');
             const allocationSection = document.getElementById('allocation-section');
-            // Hide previous errors
             errorContainer.classList.add('hidden');
             try {
-                // Parse all uploaded files
                 const quarters = ['q1', 'q2', 'q3', 'q4'];
                 const quarterLabels = [];
                 for (let i = 0; i < quarters.length; i++) {
@@ -406,7 +375,6 @@
                         statusEl.textContent = '✓';
                         statusEl.className = 'text-xs text-green-600 dark:text-green-400';
                     } else if (quarterData[quarters[i]]) {
-                        // Previously loaded data still exists
                         quarterLabels.push(`Q${i + 1}`);
                         statusEl.textContent = '✓';
                         statusEl.className = 'text-xs text-green-600 dark:text-green-400';
@@ -414,11 +382,9 @@
                         statusEl.textContent = '';
                     }
                 }
-                // Check if at least one file was uploaded or exists
                 if (quarterLabels.length === 0) {
                     throw new Error('Please upload at least one CSV file');
                 }
-                // Merge data from all quarters by chatter and model
                 const allChattersSet = new Set();
                 quarters.forEach(q => {
                     if (quarterData[q]) {
@@ -427,9 +393,7 @@
                         });
                     }
                 });
-                // Store globally
                 allChatters = Array.from(allChattersSet).sort();
-                // Organize data
                 chatterModels = {};
                 allModels = {};
                 allChatters.forEach(chatter => {
@@ -458,9 +422,7 @@
                         };
                     });
                 });
-                // Update status
                 updateAllocationStatus();
-                // Show allocation section
                 allocationSection.classList.remove('hidden');
                 initializeAllocation();
             } catch (error) {
@@ -480,7 +442,6 @@
         }
         // Initialize allocation interface
         function initializeAllocation() {
-            // If allocations are locked, just refresh the display
             if (allocationsLocked) {
                 for (let shift = 1; shift <= 3; shift++) {
                     renderGroups(shift);
@@ -489,7 +450,6 @@
                 document.getElementById('lock-allocations-btn').classList.add('opacity-50', 'cursor-not-allowed');
                 return;
             }
-            // Populate unassigned chatters for all shifts
             for (let shift = 1; shift <= 3; shift++) {
                 renderUnassignedChatters(shift);
                 renderGroups(shift);
@@ -501,7 +461,6 @@
                 generateReport();
                 return;
             }
-            // Validate at least one group has chatters
             let hasAllocations = false;
             for (let shift = 1; shift <= 3; shift++) {
                 if (shiftAllocations[shift].groups.some(g => g.chatters.length > 0)) {
@@ -568,18 +527,15 @@
                 const textColor = isSelected ? 'text-white' : 'text-gray-800 dark:text-gray-200';
                 return `<span class="chatter-tag ${bgClass} ${textColor} px-3 py-2 rounded-md text-sm cursor-pointer ${hoverClass}" data-chatter="${chatter}">${chatter}${isSelected ? ' ✓' : ''}</span>`;
             }).join('');
-            // Add click handlers only in assignment mode
             if (isAssignmentMode && currentAssignmentGroupId) {
                 container.querySelectorAll('.chatter-tag').forEach(tag => {
                     tag.onclick = () => {
                         const chatter = tag.dataset.chatter;
-                        // Toggle selection
                         if (selectedChattersForAssignment.includes(chatter)) {
                             selectedChattersForAssignment = selectedChattersForAssignment.filter(c => c !== chatter);
                         } else {
                             selectedChattersForAssignment.push(chatter);
                         }
-                        // Re-render to update visuals
                         renderUnassignedChatters(shift);
                         updateAssignmentBanner(shift);
                     };
@@ -645,11 +601,8 @@
             currentAssignmentShift = shift;
             currentAssignmentGroupId = groupId;
             selectedChattersForAssignment = [];
-            // Highlight the active group
             renderGroups(shift);
-            // Show instruction banner
             updateAssignmentBanner(shift);
-            // Make unassigned chatters clickable
             renderUnassignedChatters(shift);
         }
         function updateAssignmentBanner(shift) {
@@ -658,7 +611,6 @@
             if (existingBanner) existingBanner.remove();
             const group = shiftAllocations[shift].groups.find(g => g.id === currentAssignmentGroupId);
             if (!group) return;
-            // Calculate unassigned chatters count
             const assignedChatters = new Set();
             shiftAllocations[shift].groups.forEach(g => {
                 g.chatters.forEach(c => assignedChatters.add(c));
@@ -708,7 +660,6 @@
                     }
                 });
             }
-            // Reset assignment mode
             selectedChattersForAssignment = [];
             currentAssignmentShift = null;
             currentAssignmentGroupId = null;
@@ -742,30 +693,28 @@
         document.querySelectorAll('.shift-tab').forEach(tab => {
             tab.addEventListener('click', function() {
                 const shift = this.dataset.shift;
-                // Update tabs
                 document.querySelectorAll('.shift-tab').forEach(t => {
                     t.classList.remove('bg-[#5D5CDE]', 'text-white');
                     t.classList.add('text-gray-600', 'dark:text-gray-400');
                 });
                 this.classList.add('bg-[#5D5CDE]', 'text-white');
                 this.classList.remove('text-gray-600', 'dark:text-gray-400');
-                // Update content
                 document.querySelectorAll('.shift-content').forEach(c => c.classList.add('hidden'));
                 document.getElementById(`shift-${shift}-content`).classList.remove('hidden');
             });
         });
 
-        // --- UPDATED FUNCTION ---
+        // --- ⬇⬇⬇ MODIFIED SECTION ⬇⬇⬇ ---
+
         // Generate report
         function generateReport() {
             const resultsContainer = document.getElementById('results-container');
             const results = document.getElementById('results');
             const allocationSection = document.getElementById('allocation-section');
             resultsContainer.innerHTML = '';
-            // Get quarters with data
             const quarters = ['q1', 'q2', 'q3', 'q4'];
             const quarterLabels = quarters.map((q, i) => quarterData[q] ? `Q${i + 1}` : null).filter(q => q);
-            // Generate report for each shift
+
             for (let shift = 1; shift <= 3; shift++) {
                 if (shiftAllocations[shift].groups.length === 0) continue;
                 let shiftHTML = `
@@ -773,9 +722,7 @@
                         <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-3 pb-1 border-b-2 border-[#5D5CDE]">Shift ${shift}</h2>
                 `;
                 shiftAllocations[shift].groups.forEach(group => {
-                    // 1. ADD A UNIQUE ID FOR THE GROUP'S DIV
                     const groupReportId = `group-report-${shift}-${group.id}`;
-                    // Sanitize filename
                     const safeFilename = `${group.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
 
                     shiftHTML += `
@@ -786,9 +733,14 @@
                                     <h3 class="text-base font-bold text-[#5D5CDE] inline">${group.name}</h3>
                                     <span class="text-sm text-gray-600 dark:text-gray-400"> - Manager: ${group.manager}</span>
                                 </div>
-                                <button onclick="downloadGroupImage(this, '${groupReportId}', '${safeFilename}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded no-print">
-                                    Download Image
-                                </button>
+                                <div class="flex gap-2 no-print">
+                                    <button onclick="downloadGroupImage(this, '${groupReportId}', '${safeFilename}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
+                                        Download
+                                    </button>
+                                    <button onclick="copyGroupImage(this, '${groupReportId}')" class="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-1 px-2 rounded">
+                                        Copy
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="grid grid-cols-1 gap-2">
@@ -806,57 +758,112 @@
                 shiftHTML += `</div>`;
                 resultsContainer.innerHTML += shiftHTML;
             }
-            // Hide allocation section and show results
             allocationSection.classList.add('hidden');
             results.classList.remove('hidden');
         }
 
-        // --- NEW FUNCTION ---
-        // DOWNLOAD GROUP AS IMAGE
-        function downloadGroupImage(buttonEl, elementId, filename) {
+        
+        // --- NEW CORE BLOB GENERATOR FUNCTION ---
+        // This function does the hard work of creating the image
+        // and returns a Promise that resolves with a Blob.
+        function generateGroupBlob(elementId) {
+            return new Promise((resolve, reject) => {
+                const element = document.getElementById(elementId);
+                const originalBg = element.style.backgroundColor;
+                element.style.backgroundColor = '#ffffff'; // Force white background
+
+                html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    window: window, // <-- IMPORTANT FIX for Poe
+                    onclone: (clonedDoc) => {
+                        clonedDoc.getElementById(elementId).style.backgroundColor = originalBg;
+                    }
+                }).then(canvas => {
+                    // Restore background *before* resolving
+                    element.style.backgroundColor = originalBg;
+                    // Convert canvas to Blob
+                    canvas.toBlob(blob => {
+                        if (blob) {
+                            resolve(blob);
+                        } else {
+                            reject(new Error('Canvas to Blob conversion failed'));
+                        }
+                    }, 'image/png');
+                }).catch(err => {
+                    // Restore background on error
+                    element.style.backgroundColor = originalBg;
+                    reject(err);
+                });
+            });
+        }
+
+        // --- UPDATED DOWNLOAD FUNCTION ---
+        async function downloadGroupImage(buttonEl, elementId, filename) {
             const originalText = buttonEl.innerHTML;
-            buttonEl.innerHTML = 'Generating...';
+            buttonEl.innerHTML = '...';
             buttonEl.disabled = true;
 
-            const element = document.getElementById(elementId);
-            
-            // Temporarily set a white background for the capture
-            // This prevents transparent backgrounds on dark mode captures
-            const originalBg = element.style.backgroundColor;
-            element.style.backgroundColor = '#ffffff'; // Force white background for capture
-
-            html2canvas(element, {
-                scale: 2, // Generates a higher-resolution image
-                useCORS: true,
-                onclone: (clonedDoc) => {
-                    // Find the cloned element and restore its background to avoid
-                    // the white flash on the original element
-                    clonedDoc.getElementById(elementId).style.backgroundColor = originalBg;
-                }
-            }).then(canvas => {
-                // Restore original element's background
-                element.style.backgroundColor = originalBg; 
-
-                // Create a temporary link to trigger the download
+            try {
+                const blob = await generateGroupBlob(elementId);
+                
+                // Create a temporary link
                 const link = document.createElement('a');
-                link.href = canvas.toDataURL('image/png');
+                link.href = URL.createObjectURL(blob);
                 link.download = filename;
+                
+                // Append, click, and remove
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                
+                // Revoke the object URL to free up memory
+                URL.revokeObjectURL(link.href);
 
+            } catch (err) {
+                console.error('Download error:', err);
+                showCustomAlert('Could not download image. See console for details.');
+            } finally {
                 // Restore button
                 buttonEl.innerHTML = originalText;
                 buttonEl.disabled = false;
-            }).catch(err => {
-                console.error('html2canvas error:', err);
-                showCustomAlert('Could not generate image. See console for details.');
-                // Restore button and background
-                element.style.backgroundColor = originalBg;
+            }
+        }
+
+        // --- NEW COPY TO CLIPBOARD FUNCTION ---
+        async function copyGroupImage(buttonEl, elementId) {
+            // Check for clipboard permissions
+            if (!navigator.clipboard || !navigator.clipboard.write) {
+                showCustomAlert('Clipboard API not supported or blocked in this browser.');
+                return;
+            }
+
+            const originalText = buttonEl.innerHTML;
+            buttonEl.innerHTML = '...';
+            buttonEl.disabled = true;
+
+            try {
+                const blob = await generateGroupBlob(elementId);
+                
+                // Create a clipboard item
+                const item = new ClipboardItem({ 'image/png': blob });
+                
+                // Write to clipboard
+                await navigator.clipboard.write([item]);
+                
+                showCustomAlert('Image copied to clipboard!');
+
+            } catch (err) {
+                console.error('Copy error:', err);
+                showCustomAlert('Could not copy image. See console for details.');
+            } finally {
+                // Restore button
                 buttonEl.innerHTML = originalText;
                 buttonEl.disabled = false;
-            });
+            }
         }
+
+        // --- ⬆⬆⬆ END OF MODIFIED SECTION ⬆⬆⬆ ---
 
         // Show allocation section
         function showAllocationSection() {
@@ -894,31 +901,25 @@
             document.body.appendChild(modal);
         }
         function confirmClearAll() {
-            // Clear all file inputs
             document.getElementById('file-q1').value = '';
             document.getElementById('file-q2').value = '';
             document.getElementById('file-q3').value = '';
             document.getElementById('file-q4').value = '';
-            // Clear quarter data
             quarterData.q1 = null;
             quarterData.q2 = null;
             quarterData.q3 = null;
             quarterData.q4 = null;
-            // Clear status indicators
             document.getElementById('q1-status').textContent = '';
             document.getElementById('q2-status').textContent = '';
             document.getElementById('q3-status').textContent = '';
             document.getElementById('q4-status').textContent = '';
-            // Clear allocations
             shiftAllocations[1].groups = [];
             shiftAllocations[2].groups = [];
             shiftAllocations[3].groups = [];
             allocationsLocked = false;
-            // Clear global data
             allChatters = [];
             allModels = {};
             chatterModels = {};
-            // Reset UI
             document.getElementById('lock-allocations-btn').textContent = 'Lock Allocations & Process Data';
             document.getElementById('lock-allocations-btn').classList.remove('opacity-50', 'cursor-not-allowed');
             document.getElementById('allocation-section').classList.add('hidden');
