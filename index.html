@@ -1,9 +1,16 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatter Performance Tracker</title>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -18,13 +25,19 @@
             .page-break-after { margin-bottom: 2rem; }
         }
     </style>
-</head>
+    </head>
 <body class="bg-white dark:bg-gray-900 min-h-screen">
     <div class="container mx-auto p-4 max-w-7xl">
-        <div class="mb-6">
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Chatter Performance Tracker</h1>
-            <p class="text-gray-600 dark:text-gray-400">Upload up to 4 CSV files (one per quarter) to track chatter performance by model</p>
+        <div class="mb-6 flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Chatter Performance Tracker</h1>
+                <p class="text-gray-600 dark:text-gray-400">Upload up to 4 CSV files (one per quarter) to track chatter performance by model</p>
+            </div>
+            <button id="theme-toggle-btn" class="no-print p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                <span id="theme-icon" class="text-xl"></span>
+            </button>
         </div>
+        
         <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mb-6 no-print">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Upload CSV Files</h2>
@@ -153,17 +166,6 @@
         </div>
     </div>
     <script>
-        // Dark mode support
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-        }
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-            if (event.matches) {
-                document.documentElement.classList.add('dark');
-            } else {
-                document.documentElement.classList.remove('dark');
-            }
-        });
         // Data storage
         const quarterData = {
             q1: null,
@@ -245,6 +247,8 @@
             { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-400', text: 'text-indigo-900 dark:text-indigo-100' },
             { bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-400', text: 'text-rose-900 dark:text-rose-100' }
         ];
+        
+        // --- MODIFIED FUNCTION ---
         // Create table HTML
         function createChatterTable(chatter, modelsData, quarterLabels) {
             modelsData.sort((a, b) => a.model.localeCompare(b.model));
@@ -263,9 +267,11 @@
             }
             let html = `
                 <div class="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 mb-2 break-inside-avoid shadow-sm">
-                    <div class="bg-[#5D5CDE] text-white px-2 py-1 flex justify-between items-center">
-                        <h4 class="text-xs font-bold">${chatter}</h4>
-                        <span class="text-xs opacity-75">${modelsData.length} model${modelsData.length > 1 ? 's' : ''}</span>
+                    <div class="bg-[#5D5CDE] text-white px-3 py-2 flex justify-center items-center relative">
+                        <h4 class="text-lg font-bold text-center">${chatter}</h4>
+                        <span class="text-xs opacity-75 absolute right-3">
+                            ${modelsData.length} model${modelsData.length > 1 ? 's' : ''}
+                        </span>
                     </div>
             `;
             modelRows.forEach((rowModels, rowIdx) => {
@@ -282,7 +288,8 @@
                     const colorIdx = (rowIdx * modelsPerRow + idx) % modelColors.length;
                     const color = modelColors[colorIdx];
                     if (modelEntry) {
-                        html += `<th rowspan="2" class="px-1 py-1 text-left font-semibold ${color.text} ${color.bg} border-b border-l border-t ${color.border}" style="width: 9%; border-width: 2px; white-space: nowrap;">${modelEntry.model}</th>`;
+                        // MODIFIED: Added 'font-bold' and 'text-sm'
+                        html += `<th rowspan="2" class="px-1 py-1 text-left font-bold text-sm ${color.text} ${color.bg} border-b border-l border-t ${color.border}" style="width: 9%; border-width: 2px; white-space: nowrap;">${modelEntry.model}</th>`;
                         allQuarterSlots.forEach(q => {
                             html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 dark:text-gray-200 ${color.bg} border-b border-t border-gray-300 dark:border-gray-600" style="width: 4.5%; border-width: 1px; white-space: nowrap;">${q}</th>`;
                         });
@@ -356,6 +363,7 @@
             html += `</div>`;
             return html;
         }
+
         // Main processing function
         async function processAllFiles() {
             const errorContainer = document.getElementById('error-container');
@@ -501,6 +509,9 @@
             updateAllocationStatus();
             initializeAllocation();
         }
+
+        // --- ⬇⬇⬇ MODIFIED SECTION (CHATTER SEARCH) ⬇⬇⬇ ---
+
         // Render unassigned chatters
         function renderUnassignedChatters(shift) {
             const container = document.getElementById(`shift-${shift}-unassigned`);
@@ -508,13 +519,27 @@
             shiftAllocations[shift].groups.forEach(group => {
                 group.chatters.forEach(c => assignedChatters.add(c));
             });
+            
             const unassigned = allChatters.filter(c => !assignedChatters.has(c));
-            if (unassigned.length === 0) {
-                container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">All chatters have been assigned</p>';
+
+            const searchInput = document.getElementById(`chatter-search-input-${shift}`);
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const filteredUnassigned = unassigned.filter(c => 
+                c.toLowerCase().includes(searchTerm)
+            );
+
+            if (filteredUnassigned.length === 0) {
+                 if (searchTerm) {
+                    container.innerHTML = `<p class="text-gray-500 dark:text-gray-400 text-sm">No chatters found matching "${searchTerm}"</p>`;
+                 } else {
+                    container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">All chatters have been assigned</p>';
+                 }
                 return;
             }
+
             const isAssignmentMode = currentAssignmentShift === shift;
-            container.innerHTML = unassigned.map(chatter => {
+            
+            container.innerHTML = filteredUnassigned.map(chatter => {
                 const isSelected = selectedChattersForAssignment.includes(chatter);
                 let bgClass, hoverClass;
                 if (isAssignmentMode) {
@@ -527,6 +552,7 @@
                 const textColor = isSelected ? 'text-white' : 'text-gray-800 dark:text-gray-200';
                 return `<span class="chatter-tag ${bgClass} ${textColor} px-3 py-2 rounded-md text-sm cursor-pointer ${hoverClass}" data-chatter="${chatter}">${chatter}${isSelected ? ' ✓' : ''}</span>`;
             }).join('');
+
             if (isAssignmentMode && currentAssignmentGroupId) {
                 container.querySelectorAll('.chatter-tag').forEach(tag => {
                     tag.onclick = () => {
@@ -605,6 +631,8 @@
             updateAssignmentBanner(shift);
             renderUnassignedChatters(shift);
         }
+
+        // --- MODIFIED: Added Search Bar ---
         function updateAssignmentBanner(shift) {
             const container = document.getElementById(`shift-${shift}-unassigned`);
             const existingBanner = document.getElementById('assignment-banner');
@@ -619,7 +647,7 @@
             const selectedCount = selectedChattersForAssignment.length;
             const banner = document.createElement('div');
             banner.id = 'assignment-banner';
-            banner.className = 'bg-green-100 dark:bg-green-900 border-2 border-green-500 rounded-lg p-3 mb-3';
+            banner.className = 'bg-green-100 dark:bg-green-900 border-2 border-green-500 rounded-lg p-3 mb-3 space-y-3';
             banner.innerHTML = `
                 <div class="flex justify-between items-center gap-4">
                     <div>
@@ -633,8 +661,15 @@
                         <button onclick="cancelAssignment(${shift})" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-md">Cancel</button>
                     </div>
                 </div>
+                <div>
+                    <input type="text" id="chatter-search-input-${shift}" 
+                           oninput="renderUnassignedChatters(${shift})" 
+                           placeholder="Type to search for a chatter..." 
+                           class="w-full px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                </div>
             `;
             container.parentElement.insertBefore(banner, container);
+            document.getElementById(`chatter-search-input-${shift}`).focus();
         }
         function selectAllUnassigned(shift) {
             const assignedChatters = new Set();
@@ -704,7 +739,7 @@
             });
         });
 
-        // --- ⬇⬇⬇ MODIFIED SECTION ⬇⬇⬇ ---
+        // --- ⬇⬇⬇ MODIFIED SECTION (SECTION SPLITTING & HIDE BUTTONS) ⬇⬇⬇ ---
 
         // Generate report
         function generateReport() {
@@ -723,33 +758,68 @@
                 `;
                 shiftAllocations[shift].groups.forEach(group => {
                     const groupReportId = `group-report-${shift}-${group.id}`;
-                    const safeFilename = `${group.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
+                    const safeFilename = `${group.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`; 
 
                     shiftHTML += `
                         <div id="${groupReportId}" class="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded border-2 border-[#5D5CDE]">
                             
                             <div class="mb-2 pb-1 border-b border-gray-300 dark:border-gray-600 flex justify-between items-center">
-                                <div>
-                                    <h3 class="text-base font-bold text-[#5D5CDE] inline">${group.name}</h3>
-                                    <span class="text-sm text-gray-600 dark:text-gray-400"> - Manager: ${group.manager}</span>
+                                <h3 class="text-lg font-bold text-[#5D5CDE] w-1/3">
+                                    ${group.name}
+                                </h3>
+                                <div class="w-1/3 text-center">
+                                    <span class="text-xl font-semibold text-gray-700 dark:text-gray-300">
+                                        Manager: ${group.manager}
+                                    </span>
                                 </div>
-                                <div class="flex gap-2 no-print">
-                                    <button onclick="downloadGroupImage(this, '${groupReportId}', '${safeFilename}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Download
+                                <div class="flex gap-2 no-print w-1/3 justify-end">
+                                    <button onclick="downloadGroupImage(this, '${groupReportId}', '${safeFilename}-full.png')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
+                                        Download All
                                     </button>
                                     <button onclick="copyGroupImage(this, '${groupReportId}')" class="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Copy
+                                        Copy All
                                     </button>
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 gap-2">
                     `;
-                    group.chatters.forEach(chatter => {
+                    
+                    // --- NEW SECTION SPLITTING LOGIC ---
+                    const chattersPerSection = 5;
+                    let chatterBuffer = ''; 
+                    
+                    group.chatters.forEach((chatter, chatterIndex) => {
                         if (chatterModels[chatter]) {
-                            shiftHTML += createChatterTable(chatter, chatterModels[chatter], quarterLabels);
+                            chatterBuffer += createChatterTable(chatter, chatterModels[chatter], quarterLabels);
+                        }
+
+                        if ((chatterIndex + 1) % chattersPerSection === 0 || chatterIndex === group.chatters.length - 1) {
+                            const sectionIndex = Math.floor(chatterIndex / chattersPerSection);
+                            const sectionId = `${groupReportId}-section-${sectionIndex}`;
+                            const sectionFilename = `${safeFilename}-section${sectionIndex + 1}.png`;
+                            
+                            shiftHTML += `<div id="${sectionId}" class="mb-4 p-3 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600">`;
+                            shiftHTML += chatterBuffer; 
+                            
+                            // Add Section-Specific Buttons
+                            shiftHTML += `
+                                <div class="flex gap-2 justify-end no-print mt-2 -mr-1 -mb-1">
+                                    <button onclick="downloadGroupImage(this, '${sectionId}', '${sectionFilename}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
+                                        Download Section
+                                    </button>
+                                    <button onclick="copyGroupImage(this, '${sectionId}')" class="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-1 px-2 rounded">
+                                        Copy Section
+                                    </button>
+                                </div>
+                            `;
+                            
+                            shiftHTML += `</div>`; // Close section div
+                            chatterBuffer = ''; // Reset buffer
                         }
                     });
+                    // --- END NEW SECTION LOGIC ---
+                    
                     shiftHTML += `
                             </div>
                         </div>
@@ -763,26 +833,45 @@
         }
 
         
-        // --- NEW CORE BLOB GENERATOR FUNCTION ---
-        // This function does the hard work of creating the image
-        // and returns a Promise that resolves with a Blob.
+        // --- ⬇⬇⬇ MODIFIED FUNCTION ⬇⬇⬇ ---
+        // --- CORE BLOB GENERATOR (HIGHER RES + HIDE BUTTONS + BIGGER FONT) ---
         function generateGroupBlob(elementId) {
             return new Promise((resolve, reject) => {
                 const element = document.getElementById(elementId);
                 const originalBg = element.style.backgroundColor;
+                
+                // --- NEW: Store original font size and set new one ---
+                const originalFontSize = element.style.fontSize;
                 element.style.backgroundColor = '#ffffff'; // Force white background
+                element.style.fontSize = '14pt'; // <-- INCREASED FONT SIZE
+                // --- END NEW ---
+
+                // --- Hide buttons before capture ---
+                const buttonsToHide = element.querySelectorAll('.no-print');
+                buttonsToHide.forEach(btn => btn.style.display = 'none');
 
                 html2canvas(element, {
-                    scale: 2,
+                    scale: 3, // Higher resolution
                     useCORS: true,
-                    window: window, // <-- IMPORTANT FIX for Poe
+                    window: window, 
                     onclone: (clonedDoc) => {
-                        clonedDoc.getElementById(elementId).style.backgroundColor = originalBg;
+                        const clonedElement = clonedDoc.getElementById(elementId);
+                        clonedElement.style.backgroundColor = originalBg;
+                        
+                        // --- NEW: Apply new font size to clone ---
+                        clonedElement.style.fontSize = '14pt';
+                        // --- END NEW ---
+
+                        // Hide buttons in the clone as well
+                        clonedDoc.querySelectorAll('.no-print').forEach(btn => btn.style.display = 'none');
                     }
                 }).then(canvas => {
-                    // Restore background *before* resolving
+                    // --- RESTORE ---
                     element.style.backgroundColor = originalBg;
-                    // Convert canvas to Blob
+                    element.style.fontSize = originalFontSize; // <-- RESTORE FONT
+                    buttonsToHide.forEach(btn => btn.style.display = '');
+                    // --- END RESTORE ---
+
                     canvas.toBlob(blob => {
                         if (blob) {
                             resolve(blob);
@@ -791,14 +880,19 @@
                         }
                     }, 'image/png');
                 }).catch(err => {
-                    // Restore background on error
+                    // --- RESTORE ON ERROR ---
                     element.style.backgroundColor = originalBg;
+                    element.style.fontSize = originalFontSize; // <-- RESTORE FONT
+                    buttonsToHide.forEach(btn => btn.style.display = '');
+                    // --- END RESTORE ---
                     reject(err);
                 });
             });
         }
+        // --- ⬆⬆⬆ END OF MODIFIED FUNCTION ⬆⬆⬆ ---
 
-        // --- UPDATED DOWNLOAD FUNCTION ---
+
+        // --- DOWNLOAD FUNCTION ---
         async function downloadGroupImage(buttonEl, elementId, filename) {
             const originalText = buttonEl.innerHTML;
             buttonEl.innerHTML = '...';
@@ -806,33 +900,25 @@
 
             try {
                 const blob = await generateGroupBlob(elementId);
-                
-                // Create a temporary link
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
                 link.download = filename;
-                
-                // Append, click, and remove
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
-                // Revoke the object URL to free up memory
                 URL.revokeObjectURL(link.href);
 
             } catch (err) {
                 console.error('Download error:', err);
                 showCustomAlert('Could not download image. See console for details.');
             } finally {
-                // Restore button
                 buttonEl.innerHTML = originalText;
                 buttonEl.disabled = false;
             }
         }
 
-        // --- NEW COPY TO CLIPBOARD FUNCTION ---
+        // --- COPY TO CLIPBOARD FUNCTION ---
         async function copyGroupImage(buttonEl, elementId) {
-            // Check for clipboard permissions
             if (!navigator.clipboard || !navigator.clipboard.write) {
                 showCustomAlert('Clipboard API not supported or blocked in this browser.');
                 return;
@@ -844,26 +930,18 @@
 
             try {
                 const blob = await generateGroupBlob(elementId);
-                
-                // Create a clipboard item
                 const item = new ClipboardItem({ 'image/png': blob });
-                
-                // Write to clipboard
                 await navigator.clipboard.write([item]);
-                
                 showCustomAlert('Image copied to clipboard!');
 
             } catch (err) {
                 console.error('Copy error:', err);
                 showCustomAlert('Could not copy image. See console for details.');
             } finally {
-                // Restore button
                 buttonEl.innerHTML = originalText;
                 buttonEl.disabled = false;
             }
         }
-
-        // --- ⬆⬆⬆ END OF MODIFIED SECTION ⬆⬆⬆ ---
 
         // Show allocation section
         function showAllocationSection() {
@@ -927,8 +1005,45 @@
             document.getElementById('error-container').classList.add('hidden');
             updateAllocationStatus();
         }
-        // Event listeners
-        document.getElementById('process-btn').addEventListener('click', processAllFiles);
+        
+        // --- ⬇⬇⬇ MODIFIED: THEME TOGGLE FUNCTIONS (NO RELOAD) ⬇⬇⬇ ---
+        function toggleTheme() {
+            // Simply toggle the 'dark' class on the <html> element
+            const isDark = document.documentElement.classList.toggle('dark');
+            const themeIcon = document.getElementById('theme-icon');
+            
+            // Update the icon and localStorage
+            if (isDark) {
+                localStorage.theme = 'dark';
+                themeIcon.textContent = '☀️';
+            } else {
+                localStorage.theme = 'light';
+                themeIcon.textContent = '🌙';
+            }
+        }
+
+        function setInitialThemeIcon() {
+            const themeIcon = document.getElementById('theme-icon');
+            // Set icon based on the class that was set in the <head>
+            if (document.documentElement.classList.contains('dark')) {
+                themeIcon.textContent = '☀️'; // Show sun icon in dark mode
+            } else {
+                themeIcon.textContent = '🌙'; // Show moon icon in light mode
+            }
+        }
+        
+        // --- MODIFIED: Wait for DOM to load before adding listeners ---
+        document.addEventListener('DOMContentLoaded', (event) => {
+            // Main file processing listener
+            document.getElementById('process-btn').addEventListener('click', processAllFiles);
+            
+            // Theme toggle listener
+            document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+            
+            // Set the initial icon
+            setInitialThemeIcon();
+        });
+        // --- ⬆⬆⬆ END OF MODIFIED SECTION ⬆⬆⬆ ---
     </script>
 </body>
 </html>
