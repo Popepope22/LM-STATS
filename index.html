@@ -746,7 +746,7 @@
             });
         });
 
-        // --- ⬇⬇⬇ MODIFIED SECTION (SECTION SPLITTING & HIDE BUTTONS) ⬇⬇⬇ ---
+        // --- ⬇⬇⬇ MODIFIED SECTION (SECTION SPLITTING & BORDER) ⬇⬇⬇ ---
 
         // Generate report
         function generateReport() {
@@ -767,8 +767,9 @@
                     const groupReportId = `group-report-${shift}-${group.id}`;
                     const safeFilename = `${group.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`; 
 
+                    // --- MODIFIED: Added border-8, border-black, dark:border-gray-300 ---
                     shiftHTML += `
-                        <div id="${groupReportId}" class="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded border-2 border-[#5D5CDE]">
+                        <div id="${groupReportId}" class="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded border-8 border-black dark:border-gray-300">
                             
                             <div class="mb-2 pb-1 border-b border-gray-300 dark:border-gray-600 flex justify-between items-center">
                                 <h3 class="text-lg font-bold text-[#5D5CDE] w-1/3">
