@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatter Performance Tracker</title>
-    
+        
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -28,7 +28,7 @@
                 <p class="text-gray-600">Upload up to 4 CSV files (one per quarter) to track chatter performance by model</p>
             </div>
             </div>
-        
+                
         <div class="bg-gray-50 rounded-lg p-6 mb-6 no-print">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-900">Upload CSV Files</h2>
@@ -74,6 +74,7 @@
                 </button>
             </div>
         </div>
+
         <div id="allocation-section" class="hidden no-print">
             <div class="bg-gray-50 rounded-lg p-6 mb-6">
                 <h2 class="text-2xl font-semibold text-gray-900 mb-4">Allocate Chatters to Groups</h2>
@@ -82,6 +83,7 @@
                     <button class="shift-tab px-6 py-3 font-semibold text-gray-600 hover:bg-gray-200 rounded-t-lg" data-shift="2">Shift 2</button>
                     <button class="shift-tab px-6 py-3 font-semibold text-gray-600 hover:bg-gray-200 rounded-t-lg" data-shift="3">Shift 3</button>
                 </div>
+
                 <div id="shift-1-content" class="shift-content">
                     <div class="mb-6">
                         <div class="flex gap-3 mb-4">
@@ -89,13 +91,14 @@
                             <input type="text" id="shift-1-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
                             <button onclick="addGroup(1)" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-6 py-2 rounded-md transition duration-200">Add Group</button>
                         </div>
-                        <div id="shift-1-groups" class="space-y-4"></div>
+                        <div id="shift-1-groups" class="space-y-4" ondragover="dragOver(event)" ondrop="drop(event, 1)"></div>
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <h4 class="font-semibold text-gray-900 mb-3">Unassigned Chatters</h4>
                         <div id="shift-1-unassigned" class="flex flex-wrap gap-2"></div>
                     </div>
                 </div>
+
                 <div id="shift-2-content" class="shift-content hidden">
                     <div class="mb-6">
                         <div class="flex gap-3 mb-4">
@@ -103,13 +106,14 @@
                             <input type="text" id="shift-2-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
                             <button onclick="addGroup(2)" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-6 py-2 rounded-md transition duration-200">Add Group</button>
                         </div>
-                        <div id="shift-2-groups" class="space-y-4"></div>
+                        <div id="shift-2-groups" class="space-y-4" ondragover="dragOver(event)" ondrop="drop(event, 2)"></div>
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <h4 class="font-semibold text-gray-900 mb-3">Unassigned Chatters</h4>
                         <div id="shift-2-unassigned" class="flex flex-wrap gap-2"></div>
                     </div>
                 </div>
+
                 <div id="shift-3-content" class="shift-content hidden">
                     <div class="mb-6">
                         <div class="flex gap-3 mb-4">
@@ -117,7 +121,7 @@
                             <input type="text" id="shift-3-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
                             <button onclick="addGroup(3)" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-6 py-2 rounded-md transition duration-200">Add Group</button>
                         </div>
-                        <div id="shift-3-groups" class="space-y-4"></div>
+                        <div id="shift-3-groups" class="space-y-4" ondragover="dragOver(event)" ondrop="drop(event, 3)"></div>
                     </div>
                     <div class="bg-white rounded-lg p-4">
                         <h4 class="font-semibold text-gray-900 mb-3">Unassigned Chatters</h4>
@@ -134,6 +138,7 @@
                 </div>
             </div>
         </div>
+
         <div id="results" class="hidden">
             <div class="flex justify-between items-center mb-4 no-print">
                 <h2 class="text-2xl font-semibold text-gray-900">Performance Results</h2>
@@ -149,6 +154,7 @@
             <div id="results-container" class="space-y-8">
                 </div>
         </div>
+
         <div id="error-container" class="hidden">
             <div class="bg-red-50 border border-red-200 rounded-lg p-4">
                 <p class="text-red-800 font-medium">Error</p>
@@ -156,6 +162,7 @@
             </div>
         </div>
     </div>
+
     <script>
         // Data storage
         const quarterData = {
@@ -175,6 +182,11 @@
         let chatterModels = {};
         let selectedChattersForAssignment = [];
         let allocationsLocked = false;
+
+        // --- NEW: Drag and drop state ---
+        let draggedGroupId = null;
+        let draggedShift = null;
+
         // Parse CSV file
         function parseCSV(file) {
             return new Promise((resolve, reject) => {
@@ -238,8 +250,9 @@
             { bg: 'bg-indigo-50', border: 'border-indigo-400', text: 'text-indigo-900' },
             { bg: 'bg-rose-50', border: 'border-rose-400', text: 'text-rose-900' }
         ];
-        
+                
         // --- Create table HTML (White Mode) ---
+        // --- MODIFIED: modelsPerRow = 1, added hide button, adjusted widths ---
         function createChatterTable(chatter, modelsData, quarterLabels) {
             modelsData.sort((a, b) => a.model.localeCompare(b.model));
             const metrics = [
@@ -250,7 +263,10 @@
             ];
             const maxQuarters = 4;
             const allQuarterSlots = ['Q1', 'Q2', 'Q3', 'Q4'];
-            const modelsPerRow = 3;
+            
+            // --- MODIFIED: Set modelsPerRow to 1 ---
+            const modelsPerRow = 1; 
+            
             const modelRows = [];
             for (let i = 0; i < modelsData.length; i += modelsPerRow) {
                 modelRows.push(modelsData.slice(i, i + modelsPerRow));
@@ -264,27 +280,43 @@
                         </span>
                     </div>
             `;
+            
             modelRows.forEach((rowModels, rowIdx) => {
                 while (rowModels.length < modelsPerRow) {
                     rowModels.push(null);
                 }
+
+                // --- NEW: Add unique ID for model container ---
+                const modelEntry = rowModels[0]; // Since modelsPerRow is 1
+                const modelId = `${chatter.replace(/[^a-z0-9]/gi, '_')}-${modelEntry.model.replace(/[^a-z0-9]/gi, '_')}-${rowIdx}`;
+
                 html += `
-                    <div class="overflow-x-auto">
+                    <div class="overflow-x-auto" id="model-container-${modelId}">
                         <table class="w-full text-xs table-fixed" style="border-collapse: separate; border-spacing: 0;">
                             <thead class="bg-gray-100">
                                 <tr>
                 `;
+                
                 rowModels.forEach((modelEntry, idx) => {
                     const colorIdx = (rowIdx * modelsPerRow + idx) % modelColors.length;
                     const color = modelColors[colorIdx];
                     if (modelEntry) {
-                        html += `<th rowspan="2" class="px-1 py-1 text-left font-bold text-sm ${color.text} ${color.bg} border-b border-l border-t ${color.border}" style="width: 9%; border-width: 2px; white-space: nowrap;">${modelEntry.model}</th>`;
+                        // --- MODIFIED: Added flex-wrapper and Hide button, changed width to 20% ---
+                        html += `<th rowspan="2" class="px-1 py-1 text-left font-bold text-sm ${color.text} ${color.bg} border-b border-l border-t ${color.border}" style="width: 20%; border-width: 2px; white-space: nowrap;">
+                                    <div class="flex justify-between items-center pr-1">
+                                        <span>${modelEntry.model}</span>
+                                        <button onclick="hideModel('model-container-${modelId}')" class="text-xs font-normal text-white/70 hover:text-white no-print">[Hide]</button>
+                                    </div>
+                                </th>`;
+                        
                         allQuarterSlots.forEach(q => {
-                            html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-gray-300" style="width: 4.5%; border-width: 1px; white-space: nowrap;">${q}</th>`;
+                            // --- MODIFIED: Changed width to 15% ---
+                            html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-gray-300" style="width: 15%; border-width: 1px; white-space: nowrap;">${q}</th>`;
                         });
-                        html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-r ${color.border}" style="width: 6.5%; border-width: 2px; white-space: nowrap;">Total</th>`;
+                        // --- MODIFIED: Changed width to 20% ---
+                        html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-r ${color.border}" style="width: 20%; border-width: 2px; white-space: nowrap;">Total</th>`;
                     } else {
-                        html += `<th colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50 border-b border-gray-300" style="width: 33.33%; border-width: 1px;"></th>`;
+                        html += `<th colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50 border-b border-gray-300" style="width: 100%; border-width: 1px;"></th>`;
                     }
                 });
                 html += `
@@ -292,6 +324,7 @@
                             </thead>
                             <tbody>
                 `;
+                
                 metrics.forEach((metric, metricIdx) => {
                     const isLastMetric = metricIdx === metrics.length - 1;
                     const rowBg = metricIdx % 2 === 0 ? '' : 'bg-gray-50/50';
@@ -302,6 +335,7 @@
                         if (modelEntry) {
                             const bottomBorder = isLastMetric ? `border-b ${color.border}` : '';
                             html += `<td class="px-1 py-1 text-gray-600 ${color.bg} font-medium border-l ${color.border} ${bottomBorder}" style="border-left-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${metric.label}</td>`;
+                            
                             let total = 0;
                             const quarterValues = [];
                             allQuarterSlots.forEach((quarterSlot, slotIdx) => {
@@ -312,6 +346,7 @@
                                 }
                                 quarterValues.push(value);
                             });
+                            
                             allQuarterSlots.forEach((quarterSlot, slotIdx) => {
                                 const value = quarterValues[slotIdx];
                                 total += value;
@@ -335,6 +370,7 @@
                                     ${outlineStyle ? `<span style="${outlineStyle}">${displayValue}</span>` : displayValue}
                                 </td>`;
                             });
+                            
                             const displayTotal = metric.isCurrency ? `$${total.toFixed(2)}` : total;
                             html += `<td class="px-1 py-1 text-center font-bold text-gray-900 ${color.bg} border-r ${color.border} ${bottomBorder}" style="border-right-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTotal}</td>`;
                         } else {
@@ -353,6 +389,23 @@
             return html;
         }
 
+        // --- NEW: Hide/Show Model Functions ---
+        function hideModel(elementId) {
+            const el = document.getElementById(elementId);
+            if (el) {
+                el.style.display = 'none';
+            }
+        }
+
+        function showAllModels(groupId) {
+            const groupElement = document.getElementById(groupId);
+            if (!groupElement) return;
+            const hiddenModels = groupElement.querySelectorAll('.overflow-x-auto');
+            hiddenModels.forEach(modelDiv => {
+                modelDiv.style.display = 'block';
+            });
+        }
+        
         // Main processing function
         async function processAllFiles() {
             const errorContainer = document.getElementById('error-container');
@@ -427,6 +480,7 @@
                 errorContainer.classList.remove('hidden');
             }
         }
+        
         // Update allocation status display
         function updateAllocationStatus() {
             const statusEl = document.getElementById('allocation-status');
@@ -437,6 +491,7 @@
                 statusEl.textContent = '';
             }
         }
+        
         // Initialize allocation interface
         function initializeAllocation() {
             if (allocationsLocked) {
@@ -452,6 +507,7 @@
                 renderGroups(shift);
             }
         }
+        
         // Lock allocations and generate report
         function lockAllocations() {
             if (allocationsLocked) {
@@ -472,6 +528,7 @@
             allocationsLocked = true;
             generateReport();
         }
+        
         // Reset all allocations
         function resetAllocations() {
             const modal = document.createElement('div');
@@ -499,8 +556,7 @@
             initializeAllocation();
         }
 
-        // --- ⬇⬇⬇ CHATTER SEARCH ⬇⬇⬇ ---
-
+        // --- Chatter Search & Assignment ---
         // Render unassigned chatters
         function renderUnassignedChatters(shift) {
             const container = document.getElementById(`shift-${shift}-unassigned`);
@@ -510,7 +566,6 @@
             });
             
             const unassigned = allChatters.filter(c => !assignedChatters.has(c));
-
             const searchInput = document.getElementById(`chatter-search-input-${shift}`);
             const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
             const filteredUnassigned = unassigned.filter(c => 
@@ -527,7 +582,7 @@
             }
 
             const isAssignmentMode = currentAssignmentShift === shift;
-            
+                        
             container.innerHTML = filteredUnassigned.map(chatter => {
                 const isSelected = selectedChattersForAssignment.includes(chatter);
                 let bgClass, hoverClass;
@@ -541,7 +596,7 @@
                 const textColor = isSelected ? 'text-white' : 'text-gray-800';
                 return `<span class="chatter-tag ${bgClass} ${textColor} px-3 py-2 rounded-md text-sm cursor-pointer ${hoverClass}" data-chatter="${chatter}">${chatter}${isSelected ? ' ✓' : ''}</span>`;
             }).join('');
-
+            
             if (isAssignmentMode && currentAssignmentGroupId) {
                 container.querySelectorAll('.chatter-tag').forEach(tag => {
                     tag.onclick = () => {
@@ -557,6 +612,7 @@
                 });
             }
         }
+        
         // Add group
         function addGroup(shift) {
             const groupNameInput = document.getElementById(`shift-${shift}-group-name`);
@@ -578,21 +634,36 @@
             managerNameInput.value = '';
             renderGroups(shift);
         }
-        // Render groups
+        
+        // --- MODIFIED: Added draggable, edit form, and edit buttons ---
         function renderGroups(shift) {
             const container = document.getElementById(`shift-${shift}-groups`);
             container.innerHTML = shiftAllocations[shift].groups.map(group => {
                 const isActive = currentAssignmentGroupId === group.id && currentAssignmentShift === shift;
                 const borderClass = isActive ? 'border-green-500 border-4 shadow-lg' : 'border-[#5D5CDE] border-2';
+                
                 return `
-                <div class="bg-white rounded-lg p-4 ${borderClass}">
+                <div id="group-draggable-${shift}-${group.id}" 
+                     class="bg-white rounded-lg p-4 ${borderClass} cursor-move" 
+                     draggable="true" 
+                     ondragstart="dragStart(event, ${shift}, ${group.id})" 
+                     ondragend="dragEnd(event)">
                     <div class="flex justify-between items-center mb-3">
-                        <div>
-                            <h4 class="font-bold text-gray-900">${group.name} ${isActive ? '← ACTIVE' : ''}</h4>
-                            <p class="text-sm text-gray-600">Manager: ${group.manager}</p>
+                        
+                        <div class="flex-1 overflow-hidden">
+                            <div id="group-display-${shift}-${group.id}">
+                                <h4 class="font-bold text-gray-900 truncate">${group.name} ${isActive ? '← ACTIVE' : ''}</h4>
+                                <p class="text-sm text-gray-600">Manager: ${group.manager}</p>
+                            </div>
+                            <div id="group-edit-${shift}-${group.id}" class="hidden space-y-2 my-2">
+                                <input type="text" value="${group.name}" class="w-full px-2 py-1 text-base border border-gray-300 rounded bg-white text-gray-900" id="edit-group-name-${shift}-${group.id}" placeholder="Group name">
+                                <input type="text" value="${group.manager}" class="w-full px-2 py-1 text-base border border-gray-300 rounded bg-white text-gray-900" id="edit-manager-name-${shift}-${group.id}" placeholder="Manager name">
+                            </div>
                         </div>
-                        <div class="flex gap-2">
-                            <button onclick="assignChatterToGroup(${shift}, ${group.id})" class="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-md">+ Assign Chatter</button>
+
+                        <div class="flex gap-2 flex-shrink-0 ml-2" id="group-buttons-${shift}-${group.id}">
+                            <button onclick="toggleGroupEdit(${shift}, ${group.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-3 py-1 rounded-md">Edit</button>
+                            <button onclick="assignChatterToGroup(${shift}, ${group.id})" class="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-md">+ Assign</button>
                             <button onclick="removeGroup(${shift}, ${group.id})" class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded-md">Remove</button>
                         </div>
                     </div>
@@ -609,6 +680,43 @@
             }).join('');
             renderUnassignedChatters(shift);
         }
+
+        // --- NEW: Group Edit Functions ---
+        function toggleGroupEdit(shift, groupId) {
+            // Hide display, show edit form
+            document.getElementById(`group-display-${shift}-${groupId}`).classList.add('hidden');
+            document.getElementById(`group-edit-${shift}-${groupId}`).classList.remove('hidden');
+
+            // Change buttons
+            const buttonsDiv = document.getElementById(`group-buttons-${shift}-${groupId}`);
+            buttonsDiv.innerHTML = `
+                <button onclick="saveGroupEdit(${shift}, ${groupId})" class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded-md">Save</button>
+                <button onclick="cancelGroupEdit(${shift}, ${groupId})" class="bg-gray-500 hover:bg-gray-600 text-white text-sm px-3 py-1 rounded-md">Cancel</button>
+            `;
+        }
+
+        function saveGroupEdit(shift, groupId) {
+            const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
+            if (group) {
+                const newGroupName = document.getElementById(`edit-group-name-${shift}-${groupId}`).value.trim();
+                const newManagerName = document.getElementById(`edit-manager-name-${shift}-${groupId}`).value.trim();
+                
+                if (!newGroupName || !newManagerName) {
+                    showCustomAlert('Group name and manager name cannot be empty.');
+                    return;
+                }
+                
+                group.name = newGroupName;
+                group.manager = newManagerName;
+            }
+            renderGroups(shift); // This will re-render and switch back to display mode
+        }
+
+        function cancelGroupEdit(shift, groupId) {
+            // Just re-render, no changes saved
+            renderGroups(shift);
+        }
+
         // Assign chatter to group
         let currentAssignmentShift = null;
         let currentAssignmentGroupId = null;
@@ -620,8 +728,7 @@
             updateAssignmentBanner(shift);
             renderUnassignedChatters(shift);
         }
-
-        // --- MODIFIED: Added Search Bar ---
+        
         function updateAssignmentBanner(shift) {
             const container = document.getElementById(`shift-${shift}-unassigned`);
             const existingBanner = document.getElementById('assignment-banner');
@@ -651,10 +758,10 @@
                     </div>
                 </div>
                 <div>
-                    <input type="text" id="chatter-search-input-${shift}" 
-                           oninput="renderUnassignedChatters(${shift})" 
-                           placeholder="Type to search for a chatter..." 
-                           class="w-full px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
+                    <input type="text" id="chatter-search-input-${shift}"
+                            oninput="renderUnassignedChatters(${shift})"
+                            placeholder="Type to search for a chatter..."
+                            class="w-full px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
                 </div>
             `;
             container.parentElement.insertBefore(banner, container);
@@ -700,6 +807,7 @@
             renderGroups(shift);
             renderUnassignedChatters(shift);
         }
+        
         // Remove chatter from group
         function removeChatterFromGroup(shift, groupId, chatter) {
             const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
@@ -708,11 +816,13 @@
                 renderGroups(shift);
             }
         }
+        
         // Remove group
         function removeGroup(shift, groupId) {
             shiftAllocations[shift].groups = shiftAllocations[shift].groups.filter(g => g.id !== groupId);
             renderGroups(shift);
         }
+        
         // Switch shift tabs
         document.querySelectorAll('.shift-tab').forEach(tab => {
             tab.addEventListener('click', function() {
@@ -728,9 +838,72 @@
             });
         });
 
-        // --- ⬇⬇⬇ MODIFIED SECTION (SECTION SPLITTING & BORDER) ⬇⬇⬇ ---
+        // --- NEW: Drag and Drop Functions ---
+        function dragStart(event, shift, groupId) {
+            draggedGroupId = groupId;
+            draggedShift = shift;
+            event.dataTransfer.setData('text/plain', groupId);
+            event.dataTransfer.effectAllowed = 'move';
+            // Add a visual cue
+            setTimeout(() => {
+                event.target.classList.add('opacity-50', 'ring-2', 'ring-[#5D5CDE]');
+            }, 0);
+        }
 
-        // Generate report
+        function dragEnd(event) {
+            // Remove visual cue
+            event.target.classList.remove('opacity-50', 'ring-2', 'ring-[#5D5CDE]');
+            draggedGroupId = null;
+            draggedShift = null;
+        }
+
+        function dragOver(event) {
+            event.preventDefault(); // Necessary to allow drop
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.opacity-50)')]; // all except the one being dragged
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function drop(event, targetShift) {
+            event.preventDefault();
+            if (draggedShift !== targetShift) return; // Only allow drop within the same shift
+
+            const container = document.getElementById(`shift-${targetShift}-groups`);
+            const afterElement = getDragAfterElement(container, event.clientY);
+            
+            const groupList = shiftAllocations[targetShift].groups;
+            const draggedGroupIndex = groupList.findIndex(g => g.id === draggedGroupId);
+            if (draggedGroupIndex === -1) return;
+            
+            const draggedGroup = groupList.splice(draggedGroupIndex, 1)[0]; // Remove and get group
+
+            if (afterElement == null) {
+                // Drop at the end
+                groupList.push(draggedGroup);
+            } else {
+                // Drop before afterElement
+                const targetId = parseInt(afterElement.id.split('-').pop());
+                const targetIndex = groupList.findIndex(g => g.id === targetId);
+                groupList.splice(targetIndex, 0, draggedGroup);
+            }
+            
+            renderGroups(targetShift); // Re-render to show new order
+        }
+        
+        // --- Generate Report ---
+        // --- MODIFIED: Added "Show Hidden" button ---
         function generateReport() {
             const resultsContainer = document.getElementById('results-container');
             const results = document.getElementById('results');
@@ -738,21 +911,22 @@
             resultsContainer.innerHTML = '';
             const quarters = ['q1', 'q2', 'q3', 'q4'];
             const quarterLabels = quarters.map((q, i) => quarterData[q] ? `Q${i + 1}` : null).filter(q => q);
-
+            
             for (let shift = 1; shift <= 3; shift++) {
                 if (shiftAllocations[shift].groups.length === 0) continue;
+                
                 let shiftHTML = `
                     <div class="page-break-after mb-6">
                         <h2 class="text-xl font-bold text-gray-900 mb-3 pb-1 border-b-2 border-[#5D5CDE]">Shift ${shift}</h2>
                 `;
+                
+                // --- Use the order from shiftAllocations, which is updated by drag-drop ---
                 shiftAllocations[shift].groups.forEach(group => {
                     const groupReportId = `group-report-${shift}-${group.id}`;
                     const safeFilename = `${group.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`; 
-
-                    // --- MODIFIED: Added border-8, border-black ---
+                    
                     shiftHTML += `
                         <div id="${groupReportId}" class="mb-4 p-3 bg-gray-50 rounded border-8 border-black">
-                            
                             <div class="mb-2 pb-1 border-b border-gray-300 flex justify-between items-center">
                                 <h3 class="text-lg font-bold text-[#5D5CDE] w-1/3">
                                     ${group.name}
@@ -763,6 +937,9 @@
                                     </span>
                                 </div>
                                 <div class="flex gap-2 no-print w-1/3 justify-end">
+                                    <button onclick="showAllModels('${groupReportId}')" class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold py-1 px-2 rounded">
+                                        Show Hidden
+                                    </button>
                                     <button onclick="downloadGroupImage(this, '${groupReportId}', '${safeFilename}-full.png')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
                                         Download All
                                     </button>
@@ -771,14 +948,12 @@
                                     </button>
                                 </div>
                             </div>
-
                             <div class="grid grid-cols-1 gap-2">
                     `;
-                    
-                    // --- NEW SECTION SPLITTING LOGIC ---
+                                        
                     const chattersPerSection = 5;
-                    let chatterBuffer = ''; 
-                    
+                    let chatterBuffer = '';
+                                         
                     group.chatters.forEach((chatter, chatterIndex) => {
                         if (chatterModels[chatter]) {
                             chatterBuffer += createChatterTable(chatter, chatterModels[chatter], quarterLabels);
@@ -788,11 +963,10 @@
                             const sectionIndex = Math.floor(chatterIndex / chattersPerSection);
                             const sectionId = `${groupReportId}-section-${sectionIndex}`;
                             const sectionFilename = `${safeFilename}-section${sectionIndex + 1}.png`;
-                            
+                                                        
                             shiftHTML += `<div id="${sectionId}" class="mb-4 p-3 bg-gray-100 rounded border border-gray-300">`;
-                            shiftHTML += chatterBuffer; 
-                            
-                            // Add Section-Specific Buttons
+                            shiftHTML += chatterBuffer;
+                                                         
                             shiftHTML += `
                                 <div class="flex gap-2 justify-end no-print mt-2 -mr-1 -mb-1">
                                     <button onclick="downloadGroupImage(this, '${sectionId}', '${sectionFilename}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
@@ -803,13 +977,12 @@
                                     </button>
                                 </div>
                             `;
-                            
+                                                        
                             shiftHTML += `</div>`; // Close section div
                             chatterBuffer = ''; // Reset buffer
                         }
                     });
-                    // --- END NEW SECTION LOGIC ---
-                    
+                                        
                     shiftHTML += `
                             </div>
                         </div>
@@ -818,41 +991,31 @@
                 shiftHTML += `</div>`;
                 resultsContainer.innerHTML += shiftHTML;
             }
+            
             allocationSection.classList.add('hidden');
             results.classList.remove('hidden');
         }
-
-        
-        // --- ⬇⬇⬇ MODIFIED FUNCTION ⬇⬇⬇ ---
-        // --- CORE BLOB GENERATOR (HIGHER RES + HIDE BUTTONS + BIGGER FONT) ---
+                
+        // --- Image Generation & Utility Functions ---
         function generateGroupBlob(elementId) {
             return new Promise((resolve, reject) => {
                 const element = document.getElementById(elementId);
                 const originalBg = element.style.backgroundColor;
-                
-                // --- NEW: Store original font size and set new one ---
                 const originalFontSize = element.style.fontSize;
                 element.style.backgroundColor = '#ffffff'; // Force white background
                 element.style.fontSize = '14pt'; // <-- INCREASED FONT SIZE
-                // --- END NEW ---
-
-                // --- Hide buttons before capture ---
+                
                 const buttonsToHide = element.querySelectorAll('.no-print');
                 buttonsToHide.forEach(btn => btn.style.display = 'none');
-
+                
                 html2canvas(element, {
                     scale: 3, // Higher resolution
                     useCORS: true,
                     window: window, 
-                    onclone: (clonedDoc) => {
+                     onclone: (clonedDoc) => {
                         const clonedElement = clonedDoc.getElementById(elementId);
                         clonedElement.style.backgroundColor = originalBg;
-                        
-                        // --- NEW: Apply new font size to clone ---
                         clonedElement.style.fontSize = '14pt';
-                        // --- END NEW ---
-
-                        // Hide buttons in the clone as well
                         clonedDoc.querySelectorAll('.no-print').forEach(btn => btn.style.display = 'none');
                     }
                 }).then(canvas => {
@@ -861,7 +1024,7 @@
                     element.style.fontSize = originalFontSize; // <-- RESTORE FONT
                     buttonsToHide.forEach(btn => btn.style.display = '');
                     // --- END RESTORE ---
-
+                    
                     canvas.toBlob(blob => {
                         if (blob) {
                             resolve(blob);
@@ -879,10 +1042,7 @@
                 });
             });
         }
-        // --- ⬆⬆⬆ END OF MODIFIED FUNCTION ⬆⬆⬆ ---
-
-
-        // --- DOWNLOAD FUNCTION ---
+        
         async function downloadGroupImage(buttonEl, elementId, filename) {
             const originalText = buttonEl.innerHTML;
             buttonEl.innerHTML = '...';
@@ -906,8 +1066,7 @@
                 buttonEl.disabled = false;
             }
         }
-
-        // --- COPY TO CLIPBOARD FUNCTION ---
+        
         async function copyGroupImage(buttonEl, elementId) {
             if (!navigator.clipboard || !navigator.clipboard.write) {
                 showCustomAlert('Clipboard API not supported or blocked in this browser.');
@@ -932,13 +1091,12 @@
                 buttonEl.disabled = false;
             }
         }
-
-        // Show allocation section
+        
         function showAllocationSection() {
             document.getElementById('allocation-section').classList.remove('hidden');
             document.getElementById('results').classList.add('hidden');
         }
-        // Custom modal function
+        
         function showCustomAlert(message) {
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
@@ -952,7 +1110,7 @@
             `;
             document.body.appendChild(modal);
         }
-        // Clear all function
+        
         function clearAll() {
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
@@ -995,17 +1153,20 @@
             document.getElementById('error-container').classList.add('hidden');
             updateAllocationStatus();
         }
-        
-        // --- Theme toggle functions REMOVED ---
-        
-        // --- MODIFIED: Wait for DOM to load before adding listeners ---
+                
         document.addEventListener('DOMContentLoaded', (event) => {
             // Main file processing listener
             document.getElementById('process-btn').addEventListener('click', processAllFiles);
             
-            // Theme toggle listener REMOVED
+            // --- NEW: Add unload warning ---
+            window.addEventListener('beforeunload', function (e) {
+                // Check if any files are loaded or allocations made
+                if (quarterData.q1 || quarterData.q2 || quarterData.q3 || quarterData.q4 || allChatters.length > 0) {
+                    e.preventDefault();
+                    e.returnValue = 'Are you sure you want to leave? All uploaded data will be lost.';
+                }
+            });
         });
-        // --- ⬆⬆⬆ END OF MODIFIED SECTION ⬆⬆⬆ ---
     </script>
 </body>
 </html>
