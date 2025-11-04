@@ -1,1234 +1,393 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatter Performance Tracker</title>
-        
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <style>
-        @media print {
-            .no-print { display: none; }
-            .page-break-after { page-break-after: always; }
-            body { font-size: 10pt; }
-            * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; }
+// ... (The entire HTML and the start of the <script> block)
+
+//     <script>
+//         // Data storage
+//         const quarterData = { /* ... */ };
+//         // Allocation data
+//         let allChatters = [];
+//         let allModels = {};
+//         const shiftAllocations = { /* ... */ };
+//         let chatterModels = {};
+//         let selectedChattersForAssignment = [];
+//         let allocationsLocked = false;
+//         // --- NEW: Drag and drop state ---
+//         let draggedGroupId = null;
+//         let draggedShift = null;
+
+// ... (Existing functions: parseCSV, processData, groupByChatter, createChatterTable, hideModel, showAllModels, processAllFiles, updateAllocationStatus, initializeAllocation, lockAllocations, resetAllocations, confirmReset)
+
+
+// --- Start of incomplete function ---
+// Render unassigned chatters
+function renderUnassignedChatters(shift) {
+    const container = document.getElementById(`shift-${shift}-unassigned`);
+    const assignedChatters = new Set();
+    shiftAllocations[shift].groups.forEach(group => {
+        group.chatters.forEach(c => assignedChatters.add(c));
+    });
+
+    const unassigned = allChatters.filter(c => !assignedChatters.has(c));
+    // The search input element 'chatter-search-input-${shift}' is not in the HTML,
+    // so we'll treat it as empty, and filterUnassigned will be the full unassigned list.
+    const searchInput = document.getElementById(`chatter-search-input-${shift}`);
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+    const filteredUnassigned = unassigned.filter(c => 
+        c.toLowerCase().includes(searchTerm)
+    );
+
+    if (filteredUnassigned.length === 0) {
+        // --- COMPLETE LOGIC HERE ---
+        if (searchTerm) {
+            container.innerHTML = `<p class="text-gray-500 text-sm">No chatters found matching "${searchTerm}"</p>`;
+        } else {
+            container.innerHTML = '<p class="text-gray-500 text-sm">All chatters have been assigned for this shift.</p>';
         }
-        @media screen {
-            .page-break-after { margin-bottom: 2rem; }
-        }
-        /* Style for the new modal */
-        #manage-models-modal-backdrop {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 50;
-        }
-        #manage-models-modal {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            width: 90%;
-            max-width: 400px;
-        }
-    </style>
-</head>
-<body class="bg-white min-h-screen">
-    <div class="container mx-auto p-4 max-w-7xl">
-        <div class="mb-6 flex justify-between items-start">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">Chatter Performance Tracker</h1>
-                <p class="text-gray-600">Upload up to 4 CSV files (one per quarter) to track chatter performance by model</p>
+        return;
+    }
+
+    // Since a dedicated search/select mode variable wasn't present,
+    // we assume the default is simply rendering draggable tags for assignment.
+    
+    container.innerHTML = filteredUnassigned.map(chatter => {
+        // The data-chatter-name is crucial for the drag-and-drop `drop` function
+        return `
+            <div draggable="true"
+                 ondragstart="drag(event, '${chatter}', ${shift})"
+                 class="chatter-tag px-3 py-1 text-sm rounded-full bg-indigo-100 text-indigo-800 cursor-grab border border-indigo-300 hover:bg-indigo-200 transition duration-150"
+                 data-chatter-name="${chatter}">
+                ${chatter}
             </div>
-            </div>
-                
-        <div class="bg-gray-50 rounded-lg p-6 mb-6 no-print">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-900">Upload CSV Files</h2>
-                <span id="allocation-status" class="text-sm text-gray-600"></span>
-            </div>
-            <p class="text-sm text-gray-600 mb-4">Upload 1-4 CSV files. You can upload files incrementally as they become available.</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        Quarter 1
-                        <span id="q1-status" class="text-xs"></span>
-                    </label>
-                    <input type="file" accept=".csv" id="file-q1" class="block w-full text-base px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        Quarter 2
-                        <span id="q2-status" class="text-xs"></span>
-                    </label>
-                    <input type="file" accept=".csv" id="file-q2" class="block w-full text-base px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        Quarter 3
-                        <span id="q3-status" class="text-xs"></span>
-                    </label>
-                    <input type="file" accept=".csv" id="file-q3" class="block w-full text-base px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                        Quarter 4
-                        <span id="q4-status" class="text-xs"></span>
-                    </label>
-                    <input type="file" accept=".csv" id="file-q4" class="block w-full text-base px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
-                </div>
-            </div>
-            <div class="flex gap-3">
-                <button id="process-btn" class="flex-1 bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold py-3 px-6 rounded-md transition duration-200">
-                    Process Files
-                </button>
-                <button id="clear-all-btn" onclick="clearAll()" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-md transition duration-200">
-                    Clear All
-                </button>
-            </div>
+        `;
+    }).join('');
+}
+// --- End of incomplete function ---
+
+// --- NEW REQUIRED FUNCTIONS FOR DRAG-AND-DROP & GROUPS ---
+
+// Helper function to render an individual chatter tag
+function renderChatterTag(chatterName, groupId, shift) {
+    const totalModels = allModels[chatterName] ? allModels[chatterName].length : 0;
+    return `
+        <div draggable="true"
+             ondragstart="drag(event, '${chatterName}', ${shift}, '${groupId}')"
+             class="chatter-tag px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-800 cursor-grab border border-gray-300 hover:bg-gray-200 transition duration-150 flex items-center gap-2"
+             data-chatter-name="${chatterName}">
+            <span>${chatterName}</span>
+            <span class="text-xs text-gray-500 ml-1">(${totalModels} Model${totalModels !== 1 ? 's' : ''})</span>
+            <button onclick="removeChatterFromGroup('${chatterName}', '${groupId}', ${shift})" 
+                    class="text-red-500 hover:text-red-700 ml-1 text-base leading-none">&times;</button>
         </div>
+    `;
+}
 
-        <div id="allocation-section" class="hidden no-print">
-            <div class="bg-gray-50 rounded-lg p-6 mb-6">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Allocate Chatters to Groups</h2>
-                <div class="flex border-b border-gray-300 mb-6">
-                    <button class="shift-tab px-6 py-3 font-semibold text-white bg-[#5D5CDE] rounded-t-lg" data-shift="1">Shift 1</button>
-                    <button class="shift-tab px-6 py-3 font-semibold text-gray-600 hover:bg-gray-200 rounded-t-lg" data-shift="2">Shift 2</button>
-                    <button class="shift-tab px-6 py-3 font-semibold text-gray-600 hover:bg-gray-200 rounded-t-lg" data-shift="3">Shift 3</button>
-                </div>
+// Render groups and their chatters
+function renderGroups(shift) {
+    const container = document.getElementById(`shift-${shift}-groups`);
+    const groups = shiftAllocations[shift].groups;
 
-                <div id="shift-1-content" class="shift-content">
-                    <div class="mb-6">
-                        <div class="flex gap-3 mb-4">
-                            <input type="text" id="shift-1-group-name" placeholder="Group name (e.g., GROUP 1)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                            <input type="text" id="shift-1-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                            <button onclick="addGroup(1)" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-6 py-2 rounded-md transition duration-200">Add Group</button>
-                        </div>
-                        <div id="shift-1-groups" class="space-y-4" ondragover="dragOver(event)" ondrop="drop(event, 1)"></div>
-                    </div>
-                    <div class="bg-white rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-900 mb-3">Unassigned Chatters</h4>
-                        <div id="shift-1-unassigned" class="flex flex-wrap gap-2"></div>
-                    </div>
-                </div>
+    if (groups.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm italic">No groups defined for this shift. Click "Add Group" to begin.</p>';
+        return;
+    }
 
-                <div id="shift-2-content" class="shift-content hidden">
-                    <div class="mb-6">
-                        <div class="flex gap-3 mb-4">
-                            <input type="text" id="shift-2-group-name" placeholder="Group name (e.g., GROUP 1)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                            <input type="text" id="shift-2-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                            <button onclick="addGroup(2)" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-6 py-2 rounded-md transition duration-200">Add Group</button>
-                        </div>
-                        <div id="shift-2-groups" class="space-y-4" ondragover="dragOver(event)" ondrop="drop(event, 2)"></div>
-                    </div>
-                    <div class="bg-white rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-900 mb-3">Unassigned Chatters</h4>
-                        <div id="shift-2-unassigned" class="flex flex-wrap gap-2"></div>
-                    </div>
-                </div>
-
-                <div id="shift-3-content" class="shift-content hidden">
-                    <div class="mb-6">
-                        <div class="flex gap-3 mb-4">
-                            <input type="text" id="shift-3-group-name" placeholder="Group name (e.g., GROUP 1)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                            <input type="text" id="shift-3-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                            <button onclick="addGroup(3)" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-6 py-2 rounded-md transition duration-200">Add Group</button>
-                        </div>
-                        <div id="shift-3-groups" class="space-y-4" ondragover="dragOver(event)" ondrop="drop(event, 3)"></div>
-                    </div>
-                    <div class="bg-white rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-900 mb-3">Unassigned Chatters</h4>
-                        <div id="shift-3-unassigned" class="flex flex-wrap gap-2"></div>
-                    </div>
-                </div>
-                <div class="flex gap-3 mt-6">
-                    <button onclick="lockAllocations()" id="lock-allocations-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-md transition duration-200">
-                        Lock Allocations & Process Data
-                    </button>
-                    <button onclick="resetAllocations()" class="bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-md transition duration-200">
-                        Reset All
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div id="results" class="hidden">
-            <div class="flex justify-between items-center mb-4 no-print">
-                <h2 class="text-2xl font-semibold text-gray-900">Performance Results</h2>
-                <div class="flex gap-3">
-                    <button onclick="showAllocationSection()" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200 no-print">
-                        Edit Allocations
-                    </button>
-                    <button onclick="window.print()" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold py-2 px-4 rounded-md transition duration-200">
-                        Print Report
-                    </button>
-                </div>
-            </div>
-            <div id="results-container" class="space-y-8">
-                </div>
-        </div>
-
-        <div id="error-container" class="hidden">
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p class="text-red-800 font-medium">Error</p>
-                <p id="error-message" class="text-red-600 text-sm mt-1"></p>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-container"></div>
-
-    <script>
-        // Data storage
-        const quarterData = {
-            q1: null,
-            q2: null,
-            q3: null,
-            q4: null
-        };
-        // Allocation data
-        let allChatters = [];
-        let allModels = {}; // Stores all models for a chatter, e.g., allModels['Dee'] = ['Model A', 'Model B']
+    container.innerHTML = groups.map(group => {
+        const chatterTags = group.chatters.map(chatterName => 
+            renderChatterTag(chatterName, group.id, shift)
+        ).join('');
         
-        // --- MODIFIED: shiftAllocations stores objects ---
-        const shiftAllocations = {
-            1: { groups: [] },
-            2: { groups: [] },
-            3: { groups: [] }
-            // Example group: { id: 123, name: 'Group 1', manager: 'IAN', chatters: [ { name: 'Dee', hiddenModels: ['Model A'] } ] }
-        };
+        const isLockedClass = allocationsLocked ? 'opacity-70 cursor-not-allowed' : 'hover:bg-red-600';
+        const isLockedDisabled = allocationsLocked ? 'disabled' : '';
 
-        let chatterModels = {}; // Stores quarterly data for chatter-model pairs
-        let selectedChattersForAssignment = [];
-        let allocationsLocked = false;
-
-        // Drag and drop state
-        let draggedGroupId = null;
-        let draggedShift = null;
-
-        // Parse CSV file
-        function parseCSV(file) {
-            return new Promise((resolve, reject) => {
-                Papa.parse(file, {
-                    header: true,
-                    skipEmptyLines: true,
-                    complete: (results) => resolve(results.data),
-                    error: (error) => reject(error)
-                });
-            });
-        }
-        // Process data from CSV
-        function processData(data) {
-            const processed = {};
-            data.forEach(row => {
-                const chatter = row['Employees'];
-                const model = row['Creators'];
-                const messagesSent = parseInt(row['Direct messages sent']) || 0;
-                const ppvsSent = parseInt(row['Direct PPVs sent']) || 0;
-                const ppvsOpen = parseInt(row['PPVs unlocked']) || 0;
-                const fansChatted = parseInt(row['Fans chatted']) || 0;
-                if (!chatter || !model) return;
-                const key = `${chatter}|||${model}`;
-                if (!processed[key]) {
-                    processed[key] = {
-                        chatter,
-                        model,
-                        fansChatted,
-                        messagesSent,
-                        ppvsSent,
-                        ppvsOpen
-                    };
-                } else {
-                    processed[key].fansChatted += fansChatted;
-                    processed[key].messagesSent += messagesSent;
-                    processed[key].ppvsSent += ppvsSent;
-                    processed[key].ppvsOpen += ppvsOpen;
-                }
-            });
-            return Object.values(processed);
-        }
-        
-        // Color palette for models
-        const modelColors = [
-            { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-900' },
-            { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-900' },
-            { bg: 'bg-purple-50', border: 'border-purple-400', text: 'text-purple-900' },
-            { bg: 'bg-orange-50', border: 'border-orange-400', text: 'text-orange-900' },
-            { bg: 'bg-pink-50', border: 'border-pink-400', text: 'text-pink-900' },
-            { bg: 'bg-teal-50', border: 'border-teal-400', text: 'text-teal-900' },
-            { bg: 'bg-indigo-50', border: 'border-indigo-400', text: 'text-indigo-900' },
-            { bg: 'bg-rose-50', border: 'border-rose-400', text: 'text-rose-900' }
-        ];
-                
-        // --- MODIFIED: `createChatterTable` now accepts `hiddenModels` ---
-        function createChatterTable(chatter, modelsData, quarterLabels, hiddenModels = []) {
-            
-            // --- NEW: Filter out hidden models ---
-            const visibleModelsData = modelsData.filter(modelEntry => 
-                !hiddenModels.includes(modelEntry.model)
-            );
-
-            if (visibleModelsData.length === 0) return ''; // Don't render a table if all models are hidden
-
-            visibleModelsData.sort((a, b) => a.model.localeCompare(b.model));
-            const metrics = [
-                { label: 'Fans chatted with', key: 'fansChatted' },
-                { label: 'Messages sent', key: 'messagesSent' },
-                { label: 'PPVs sent', key: 'ppvsSent' },
-                { label: 'PPVs open', key: 'ppvsOpen' }
-            ];
-            const maxQuarters = 4;
-            const allQuarterSlots = ['Q1', 'Q2', 'Q3', 'Q4'];
-            
-            const modelsPerRow = 1; // Stack models vertically
-            
-            const modelRows = [];
-            for (let i = 0; i < visibleModelsData.length; i += modelsPerRow) {
-                modelRows.push(visibleModelsData.slice(i, i + modelsPerRow));
-            }
-            let html = `
-                <div class="bg-white rounded border border-gray-300 mb-2 break-inside-avoid shadow-sm">
-                    <div class="bg-[#5D5CDE] text-white px-3 py-2 flex justify-center items-center relative">
-                        <h4 class="text-lg font-bold text-center">${chatter}</h4>
-                        <span class="text-xs opacity-75 absolute right-3">
-                            ${visibleModelsData.length} model${visibleModelsData.length > 1 ? 's' : ''}
-                        </span>
-                    </div>
-            `;
-            
-            modelRows.forEach((rowModels, rowIdx) => {
-                while (rowModels.length < modelsPerRow) {
-                    rowModels.push(null);
-                }
-
-                const modelEntry = rowModels[0];
-                const modelId = `${chatter.replace(/[^a-z0-9]/gi, '_')}-${modelEntry.model.replace(/[^a-z0-9]/gi, '_')}-${rowIdx}`;
-
-                html += `
-                    <div class="overflow-x-auto" id="model-container-${modelId}">
-                        <table class="w-full text-xs table-fixed" style="border-collapse: separate; border-spacing: 0;">
-                            <thead class="bg-gray-100">
-                                <tr>
-                `;
-                
-                rowModels.forEach((modelEntry, idx) => {
-                    const colorIdx = (rowIdx * modelsPerRow + idx) % modelColors.length;
-                    const color = modelColors[colorIdx];
-                    if (modelEntry) {
-                        // --- MODIFIED: Removed [Hide] button ---
-                        html += `<th rowspan="2" class="px-1 py-1 text-left font-bold text-sm ${color.text} ${color.bg} border-b border-l border-t ${color.border}" style="width: 20%; border-width: 2px; white-space: nowrap;">
-                                    ${modelEntry.model}
-                                </th>`;
-                        
-                        allQuarterSlots.forEach(q => {
-                            html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-gray-300" style="width: 15%; border-width: 1px; white-space: nowrap;">${q}</th>`;
-                        });
-                        html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-r ${color.border}" style="width: 20%; border-width: 2px; white-space: nowrap;">Total</th>`;
-                    } else {
-                        html += `<th colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50 border-b border-gray-300" style="width: 100%; border-width: 1px;"></th>`;
-                    }
-                });
-                html += `
-                                </tr>
-                            </thead>
-                            <tbody>
-                `;
-                
-                metrics.forEach((metric, metricIdx) => {
-                    const isLastMetric = metricIdx === metrics.length - 1;
-                    const rowBg = metricIdx % 2 === 0 ? '' : 'bg-gray-50/50';
-                    html += `<tr class="${rowBg}">`;
-                    rowModels.forEach((modelEntry, idx) => {
-                        const colorIdx = (rowIdx * modelsPerRow + idx) % modelColors.length;
-                        const color = modelColors[colorIdx];
-                        if (modelEntry) {
-                            const bottomBorder = isLastMetric ? `border-b ${color.border}` : '';
-                            html += `<td class="px-1 py-1 text-gray-600 ${color.bg} font-medium border-l ${color.border} ${bottomBorder}" style="border-left-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${metric.label}</td>`;
-                            
-                            let total = 0;
-                            const quarterValues = [];
-                            allQuarterSlots.forEach((quarterSlot, slotIdx) => {
-                                const quarterIdx = quarterLabels.indexOf(quarterSlot);
-                                let value = 0;
-                                if (quarterIdx >= 0 && modelEntry.quarters[quarterIdx]) {
-                                    value = modelEntry.quarters[quarterIdx][metric.key] || 0;
-                                }
-                                quarterValues.push(value);
-                            });
-                            
-                            allQuarterSlots.forEach((quarterSlot, slotIdx) => {
-                                const value = quarterValues[slotIdx];
-                                total += value;
-                                const displayValue = metric.isCurrency ? `$${value.toFixed(2)}` : value;
-                                let outlineStyle = '';
-                                if (slotIdx > 0) {
-                                    const prevQuarterIdx = quarterLabels.indexOf(allQuarterSlots[slotIdx - 1]);
-                                    const currentQuarterIdx = quarterLabels.indexOf(quarterSlot);
-                                    if (prevQuarterIdx >= 0 && currentQuarterIdx >= 0) {
-                                        const prevValue = quarterValues[slotIdx - 1];
-                                        if (value < prevValue) {
-                                            outlineStyle = 'border: 2px solid #EF4444; border-radius: 50%; padding: 2px 6px; display: inline-block;';
-                                        } else if (value === prevValue) {
-                                            outlineStyle = 'border: 2px solid #F97316; border-radius: 50%; padding: 2px 6px; display: inline-block;';
-                                        } else {
-                                            outlineStyle = 'border: 2px solid #10B981; border-radius: 50%; padding: 2px 6px; display: inline-block;';
-                                        }
-                                    }
-                                }
-                                html += `<td class="px-1 py-1 text-center text-gray-900 ${color.bg} ${bottomBorder}" style="${isLastMetric ? 'border-bottom-width: 1px;' : ''} white-space: nowrap;">
-                                    ${outlineStyle ? `<span style="${outlineStyle}">${displayValue}</span>` : displayValue}
-                                </td>`;
-                            });
-                            
-                            const displayTotal = metric.isCurrency ? `$${total.toFixed(2)}` : total;
-                            html += `<td class="px-1 py-1 text-center font-bold text-gray-900 ${color.bg} border-r ${color.border} ${bottomBorder}" style="border-right-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTotal}</td>`;
-                        } else {
-                            html += `<td colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50"></td>`;
-                        }
-                    });
-                    html += `</tr>`;
-                });
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            });
-            html += `</div>`;
-            return html;
-        }
-
-        // --- REMOVED `hideModel` and `showAllModels` functions ---
-        
-        // Main processing function
-        async function processAllFiles() {
-            const errorContainer = document.getElementById('error-container');
-            const errorMessage = document.getElementById('error-message');
-            const allocationSection = document.getElementById('allocation-section');
-            errorContainer.classList.add('hidden');
-            try {
-                const quarters = ['q1', 'q2', 'q3', 'q4'];
-                const quarterLabels = [];
-                for (let i = 0; i < quarters.length; i++) {
-                    const fileInput = document.getElementById(`file-${quarters[i]}`);
-                    const statusEl = document.getElementById(`${quarters[i]}-status`);
-                    if (fileInput.files.length > 0) {
-                        const data = await parseCSV(fileInput.files[0]);
-                        quarterData[quarters[i]] = processData(data);
-                        quarterLabels.push(`Q${i + 1}`);
-                        statusEl.textContent = '✓';
-                        statusEl.className = 'text-xs text-green-600';
-                    } else if (quarterData[quarters[i]]) {
-                        quarterLabels.push(`Q${i + 1}`);
-                        statusEl.textContent = '✓';
-                        statusEl.className = 'text-xs text-green-600';
-                    } else {
-                        statusEl.textContent = '';
-                    }
-                }
-                if (quarterLabels.length === 0) {
-                    throw new Error('Please upload at least one CSV file');
-                }
-                const allChattersSet = new Set();
-                quarters.forEach(q => {
-                    if (quarterData[q]) {
-                        quarterData[q].forEach(entry => {
-                            allChattersSet.add(entry.chatter);
-                        });
-                    }
-                });
-                allChatters = Array.from(allChattersSet).sort();
-                chatterModels = {};
-                allModels = {}; // Reset allModels
-                allChatters.forEach(chatter => {
-                    const models = new Set();
-                    quarters.forEach(q => {
-                        if (quarterData[q]) {
-                            quarterData[q].forEach(entry => {
-                                if (entry.chatter === chatter) {
-                                    models.add(entry.model);
-                                }
-                            });
-                        }
-                    });
-                    
-                    // --- MODIFIED: Populate allModels ---
-                    allModels[chatter] = Array.from(models).sort(); // Store all models for the modal
-                    
-                    chatterModels[chatter] = Array.from(models).map(model => {
-                        const quarterValues = quarters.map((q, idx) => {
-                            if (quarterData[q]) {
-                                const found = quarterData[q].find(e => e.chatter === chatter && e.model === model);
-                                return found || null;
-                            }
-                            return null;
-                        }).filter((_, idx) => quarterData[quarters[idx]] !== null);
-                        return {
-                            model,
-                            quarters: quarterValues
-                        };
-                    });
-                });
-                updateAllocationStatus();
-                allocationSection.classList.remove('hidden');
-                initializeAllocation();
-            } catch (error) {
-                errorMessage.textContent = error.message;
-                errorContainer.classList.remove('hidden');
-            }
-        }
-        
-        function updateAllocationStatus() {
-            const statusEl = document.getElementById('allocation-status');
-            if (allocationsLocked) {
-                statusEl.textContent = '✓ Allocations Locked';
-                statusEl.className = 'text-sm font-semibold text-green-600';
-            } else {
-                statusEl.textContent = '';
-            }
-        }
-        
-        function initializeAllocation() {
-            if (allocationsLocked) {
-                for (let shift = 1; shift <= 3; shift++) {
-                    renderGroups(shift);
-                }
-                document.getElementById('lock-allocations-btn').textContent = 'Allocations Locked - Processing Data';
-                document.getElementById('lock-allocations-btn').classList.add('opacity-50', 'cursor-not-allowed');
-                return;
-            }
-            for (let shift = 1; shift <= 3; shift++) {
-                renderUnassignedChatters(shift);
-                renderGroups(shift);
-            }
-        }
-        
-        function lockAllocations() {
-            if (allocationsLocked) {
-                generateReport();
-                return;
-            }
-            let hasAllocations = false;
-            for (let shift = 1; shift <= 3; shift++) {
-                if (shiftAllocations[shift].groups.some(g => g.chatters.length > 0)) {
-                    hasAllocations = true;
-                    break;
-                }
-            }
-            if (!hasAllocations) {
-                showCustomAlert('Please allocate at least one chatter to a group before locking.');
-                return;
-            }
-            allocationsLocked = true;
-            generateReport();
-        }
-        
-        function resetAllocations() {
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            modal.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                    <p class="text-gray-700 mb-4 font-semibold">Are you sure you want to reset all allocations?</p>
-                    <p class="text-gray-600 text-sm mb-4">This will clear all groups and chatter assignments.</p>
-                    <div class="flex justify-end gap-3">
-                        <button class="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 rounded" onclick="this.closest('.fixed').remove()">Cancel</button>
-                        <button class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded" onclick="confirmReset(); this.closest('.fixed').remove()">Reset All</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        function confirmReset() {
-            shiftAllocations[1].groups = [];
-            shiftAllocations[2].groups = [];
-            shiftAllocations[3].groups = [];
-            allocationsLocked = false;
-            document.getElementById('lock-allocations-btn').textContent = 'Lock Allocations & Process Data';
-            document.getElementById('lock-allocations-btn').classList.remove('opacity-50', 'cursor-not-allowed');
-            updateAllocationStatus();
-            initializeAllocation();
-        }
-
-        // --- Chatter Search & Assignment ---
-        // --- MODIFIED: renderUnassignedChatters based on chatter.name ---
-        function renderUnassignedChatters(shift) {
-            const container = document.getElementById(`shift-${shift}-unassigned`);
-            const assignedChatters = new Set();
-            shiftAllocations[shift].groups.forEach(group => {
-                group.chatters.forEach(c => assignedChatters.add(c.name)); // Get name from object
-            });
-            
-            const unassigned = allChatters.filter(c => !assignedChatters.has(c));
-            const searchInput = document.getElementById(`chatter-search-input-${shift}`);
-            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-            const filteredUnassigned = unassigned.filter(c => 
-                c.toLowerCase().includes(searchTerm)
-            );
-
-            if (filteredUnassigned.length === 0) {
-                 if (searchTerm) {
-                    container.innerHTML = `<p class="text-gray-500 text-sm">No chatters found matching "${searchTerm}"</p>`;
-                 } else {
-                    container.innerHTML = '<p class="text-gray-500 text-sm">All chatters have been assigned</p>';
-                 }
-                return;
-            }
-
-            const isAssignmentMode = currentAssignmentShift === shift;
-                        
-            container.innerHTML = filteredUnassigned.map(chatter => {
-                const isSelected = selectedChattersForAssignment.includes(chatter);
-                let bgClass, hoverClass;
-                if (isAssignmentMode) {
-                    bgClass = isSelected ? 'bg-[#5D5CDE]' : 'bg-green-200';
-                    hoverClass = isSelected ? 'hover:bg-[#4D4CCE]' : 'hover:bg-green-300';
-                } else {
-                    bgClass = 'bg-gray-200';
-                    hoverClass = 'hover:bg-gray-300';
-                }
-                const textColor = isSelected ? 'text-white' : 'text-gray-800';
-                return `<span class="chatter-tag ${bgClass} ${textColor} px-3 py-2 rounded-md text-sm cursor-pointer ${hoverClass}" data-chatter="${chatter}">${chatter}${isSelected ? ' ✓' : ''}</span>`;
-            }).join('');
-            
-            if (isAssignmentMode && currentAssignmentGroupId) {
-                container.querySelectorAll('.chatter-tag').forEach(tag => {
-                    tag.onclick = () => {
-                        const chatter = tag.dataset.chatter;
-                        if (selectedChattersForAssignment.includes(chatter)) {
-                            selectedChattersForAssignment = selectedChattersForAssignment.filter(c => c !== chatter);
-                        } else {
-                            selectedChattersForAssignment.push(chatter);
-                        }
-                        renderUnassignedChatters(shift);
-                        updateAssignmentBanner(shift);
-                    };
-                });
-            }
-        }
-        
-        function addGroup(shift) {
-            const groupNameInput = document.getElementById(`shift-${shift}-group-name`);
-            const managerNameInput = document.getElementById(`shift-${shift}-manager-name`);
-            const groupName = groupNameInput.value.trim();
-            const managerName = managerNameInput.value.trim();
-            if (!groupName || !managerName) {
-                showCustomAlert('Please enter both group name and manager name');
-                return;
-            }
-            const group = {
-                id: Date.now(),
-                name: groupName,
-                manager: managerName,
-                chatters: [] // This will hold objects: { name: 'Chatter', hiddenModels: [] }
-            };
-            shiftAllocations[shift].groups.push(group);
-            groupNameInput.value = '';
-            managerNameInput.value = '';
-            renderGroups(shift);
-        }
-        
-        // --- MODIFIED: `renderGroups` to show chatter tag with modal link ---
-        function renderGroups(shift) {
-            const container = document.getElementById(`shift-${shift}-groups`);
-            container.innerHTML = shiftAllocations[shift].groups.map(group => {
-                const isActive = currentAssignmentGroupId === group.id && currentAssignmentShift === shift;
-                const borderClass = isActive ? 'border-green-500 border-4 shadow-lg' : 'border-[#5D5CDE] border-2';
-                
-                return `
-                <div id="group-draggable-${shift}-${group.id}" 
-                     class="bg-white rounded-lg p-4 ${borderClass} cursor-move" 
-                     draggable="true" 
-                     ondragstart="dragStart(event, ${shift}, ${group.id})" 
-                     ondragend="dragEnd(event)">
-                    <div class="flex justify-between items-center mb-3">
-                        
-                        <div class="flex-1 overflow-hidden">
-                            <div id="group-display-${shift}-${group.id}">
-                                <h4 class="font-bold text-gray-900 truncate">${group.name} ${isActive ? '← ACTIVE' : ''}</h4>
-                                <p class="text-sm text-gray-600">Manager: ${group.manager}</p>
-                            </div>
-                            <div id="group-edit-${shift}-${group.id}" class="hidden space-y-2 my-2">
-                                <input type="text" value="${group.name}" class="w-full px-2 py-1 text-base border border-gray-300 rounded bg-white text-gray-900" id="edit-group-name-${shift}-${group.id}" placeholder="Group name">
-                                <input type="text" value="${group.manager}" class="w-full px-2 py-1 text-base border border-gray-300 rounded bg-white text-gray-900" id="edit-manager-name-${shift}-${group.id}" placeholder="Manager name">
-                            </div>
-                        </div>
-
-                        <div class="flex gap-2 flex-shrink-0 ml-2" id="group-buttons-${shift}-${group.id}">
-                            <button onclick="toggleGroupEdit(${shift}, ${group.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-3 py-1 rounded-md">Edit</button>
-                            <button onclick="assignChatterToGroup(${shift}, ${group.id})" class="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-md">+ Assign</button>
-                            <button onclick="removeGroup(${shift}, ${group.id})" class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded-md">Remove</button>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap gap-2" id="shift-${shift}-group-${group.id}-chatters">
-                        ${group.chatters.length > 0 ? group.chatters.map(chatterObj =>
-                            // --- MODIFIED: Tag now opens modal, remove button is separate ---
-                            `<span class="bg-[#5D5CDE] text-white px-3 py-1 rounded-md text-sm flex items-center gap-2">
-                                <button onclick="openManageModelsModal(${shift}, ${group.id}, '${chatterObj.name}')" class="hover:underline">
-                                    ${chatterObj.name} ${chatterObj.hiddenModels.length > 0 ? '*' : ''}
-                                </button>
-                                <button onclick="removeChatterFromGroup(${shift}, ${group.id}, '${chatterObj.name}')" class="hover:text-red-300">×</button>
-                            </span>`
-                        ).join('') : '<p class="text-gray-500 text-sm italic">No chatters assigned yet</p>'}
-                    </div>
-                </div>
-            `;
-            }).join('');
-            renderUnassignedChatters(shift);
-        }
-
-        // --- Group Edit Functions (Unchanged) ---
-        function toggleGroupEdit(shift, groupId) {
-            document.getElementById(`group-display-${shift}-${groupId}`).classList.add('hidden');
-            document.getElementById(`group-edit-${shift}-${groupId}`).classList.remove('hidden');
-            const buttonsDiv = document.getElementById(`group-buttons-${shift}-${groupId}`);
-            buttonsDiv.innerHTML = `
-                <button onclick="saveGroupEdit(${shift}, ${groupId})" class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded-md">Save</button>
-                <button onclick="cancelGroupEdit(${shift}, ${groupId})" class="bg-gray-500 hover:bg-gray-600 text-white text-sm px-3 py-1 rounded-md">Cancel</button>
-            `;
-        }
-
-        function saveGroupEdit(shift, groupId) {
-            const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
-            if (group) {
-                const newGroupName = document.getElementById(`edit-group-name-${shift}-${groupId}`).value.trim();
-                const newManagerName = document.getElementById(`edit-manager-name-${shift}-${groupId}`).value.trim();
-                
-                if (!newGroupName || !newManagerName) {
-                    showCustomAlert('Group name and manager name cannot be empty.');
-                    return;
-                }
-                
-                group.name = newGroupName;
-                group.manager = newManagerName;
-            }
-            renderGroups(shift);
-        }
-
-        function cancelGroupEdit(shift, groupId) {
-            renderGroups(shift);
-        }
-        // --- End Group Edit Functions ---
-
-        let currentAssignmentShift = null;
-        let currentAssignmentGroupId = null;
-        function assignChatterToGroup(shift, groupId) {
-            currentAssignmentShift = shift;
-            currentAssignmentGroupId = groupId;
-            selectedChattersForAssignment = [];
-            renderGroups(shift);
-            updateAssignmentBanner(shift);
-            renderUnassignedChatters(shift);
-        }
-        
-        function updateAssignmentBanner(shift) {
-            const container = document.getElementById(`shift-${shift}-unassigned`);
-            const existingBanner = document.getElementById('assignment-banner');
-            if (existingBanner) existingBanner.remove();
-            const group = shiftAllocations[shift].groups.find(g => g.id === currentAssignmentGroupId);
-            if (!group) return;
-            const assignedChatters = new Set();
-            shiftAllocations[shift].groups.forEach(g => {
-                g.chatters.forEach(c => assignedChatters.add(c.name));
-            });
-            const unassigned = allChatters.filter(c => !assignedChatters.has(c));
-            const selectedCount = selectedChattersForAssignment.length;
-            const banner = document.createElement('div');
-            banner.id = 'assignment-banner';
-            banner.className = 'bg-green-100 border-2 border-green-500 rounded-lg p-3 mb-3 space-y-3';
-            banner.innerHTML = `
-                <div class="flex justify-between items-center gap-4">
+        return `
+            <div id="${group.id}" ondragover="dragOver(event)" ondrop="drop(event, ${shift}, '${group.id}')"
+                 class="group-container bg-white p-4 rounded-lg border-t-4 border-[#5D5CDE] shadow-md space-y-3">
+                <div class="flex justify-between items-start border-b pb-2 mb-3">
                     <div>
-                        <p class="text-green-800 font-semibold">Assigning to "${group.name}"</p>
-                        <p class="text-green-700 text-sm mt-1">Click chatters below to select (${selectedCount} selected)</p>
+                        <h3 class="text-lg font-bold text-gray-900">${group.name}</h3>
+                        <p class="text-sm text-gray-600">Manager: ${group.manager}</p>
                     </div>
-                    <div class="flex gap-2">
-                        ${unassigned.length > 0 ? `<button onclick="selectAllUnassigned(${shift})" class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-2 rounded-md">Select All (${unassigned.length})</button>` : ''}
-                        ${selectedCount > 0 ? `<button onclick="deselectAll(${shift})" class="bg-orange-500 hover:bg-orange-600 text-white text-sm px-3 py-2 rounded-md">Clear</button>` : ''}
-                        ${selectedCount > 0 ? `<button onclick="confirmAssignment(${shift})" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-4 py-2 rounded-md">Assign ${selectedCount} Chatter${selectedCount > 1 ? 's' : ''}</button>` : ''}
-                        <button onclick="cancelAssignment(${shift})" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-md">Cancel</button>
+                    <div class="flex gap-2 items-center">
+                        <span class="text-sm font-semibold text-gray-700">${group.chatters.length} Chatter${group.chatters.length !== 1 ? 's' : ''}</span>
+                        <button onclick="removeGroup('${group.id}', ${shift})" 
+                                class="bg-red-500 text-white font-semibold px-2 py-1 rounded-md transition duration-200 text-sm ${isLockedClass}"
+                                ${isLockedDisabled}>
+                            Remove Group
+                        </button>
                     </div>
                 </div>
-                <div>
-                    <input type="text" id="chatter-search-input-${shift}"
-                            oninput="renderUnassignedChatters(${shift})"
-                            placeholder="Type to search for a chatter..."
-                            class="w-full px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
+                <div class="flex flex-wrap gap-2 min-h-[40px] bg-gray-50 p-2 rounded" 
+                     ondragover="dragOver(event)" ondrop="drop(event, ${shift}, '${group.id}')">
+                    ${chatterTags || '<p class="text-xs text-gray-400 italic">Drag chatters here</p>'}
                 </div>
-            `;
-            container.parentElement.insertBefore(banner, container);
-            document.getElementById(`chatter-search-input-${shift}`).focus();
+            </div>
+        `;
+    }).join('');
+}
+
+// Add a new group
+function addGroup(shift) {
+    if (allocationsLocked) {
+        showCustomAlert('Allocations are locked. Please unlock to add groups.');
+        return;
+    }
+    const nameInput = document.getElementById(`shift-${shift}-group-name`);
+    const managerInput = document.getElementById(`shift-${shift}-manager-name`);
+    const name = nameInput.value.trim();
+    const manager = managerInput.value.trim();
+
+    if (!name || !manager) {
+        showCustomAlert('Group Name and Manager Name are required.');
+        return;
+    }
+
+    const newGroup = {
+        id: `group-${shift}-${Date.now()}`,
+        name: name,
+        manager: manager,
+        chatters: []
+    };
+
+    shiftAllocations[shift].groups.push(newGroup);
+    
+    // Clear inputs and re-render
+    nameInput.value = '';
+    managerInput.value = '';
+    renderGroups(shift);
+}
+
+// Remove a group
+function removeGroup(groupId, shift) {
+    if (allocationsLocked) {
+        showCustomAlert('Allocations are locked. Please unlock to remove groups.');
+        return;
+    }
+    const groups = shiftAllocations[shift].groups;
+    const groupIndex = groups.findIndex(g => g.id === groupId);
+
+    if (groupIndex !== -1) {
+        const removedGroup = groups.splice(groupIndex, 1)[0];
+        if (removedGroup.chatters.length > 0) {
+            // Repopulate unassigned list if chatters were in the removed group
+            renderUnassignedChatters(shift);
         }
-        function selectAllUnassigned(shift) {
-            const assignedChatters = new Set();
-            shiftAllocations[shift].groups.forEach(g => {
-                g.chatters.forEach(c => assignedChatters.add(c.name));
+        renderGroups(shift);
+    }
+}
+
+// Remove a chatter from a group (moves them back to unassigned)
+function removeChatterFromGroup(chatterName, groupId, shift) {
+    if (allocationsLocked) {
+        showCustomAlert('Allocations are locked. Please unlock to change assignments.');
+        return;
+    }
+    const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
+    if (group) {
+        group.chatters = group.chatters.filter(c => c !== chatterName);
+        renderGroups(shift);
+        renderUnassignedChatters(shift);
+    }
+}
+
+
+// --- DRAG AND DROP HANDLERS ---
+function drag(ev, chatterName, shift, sourceGroupId = null) {
+    if (allocationsLocked) {
+        ev.preventDefault();
+        return;
+    }
+    ev.dataTransfer.setData("text/plain", chatterName);
+    draggedGroupId = sourceGroupId; // Store the source group ID (or null if from unassigned)
+    draggedShift = shift;
+    ev.dataTransfer.effectAllowed = "move";
+}
+
+function dragOver(ev) {
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = "move";
+}
+
+function drop(ev, targetShift, targetGroupId) {
+    ev.preventDefault();
+    if (allocationsLocked) return;
+
+    const chatterName = ev.dataTransfer.getData("text/plain");
+
+    if (draggedShift !== targetShift) {
+        showCustomAlert(`Cannot move chatter ${chatterName} between different shifts (Shift ${draggedShift} to Shift ${targetShift}).`);
+        return;
+    }
+
+    // 1. Remove from source (if applicable)
+    if (draggedGroupId) {
+        removeChatterFromGroup(chatterName, draggedGroupId, targetShift);
+    }
+
+    // 2. Add to target group (if a group is the target)
+    if (targetGroupId) {
+        const targetGroup = shiftAllocations[targetShift].groups.find(g => g.id === targetGroupId);
+        if (targetGroup && !targetGroup.chatters.includes(chatterName)) {
+            targetGroup.chatters.push(chatterName);
+        }
+    } 
+    // If the drop target is not a group (e.g., the unassigned container),
+    // the chatter is already removed from its source group (if it had one)
+    // and simply returns to the unassigned list (which happens automatically
+    // when we re-render after the source removal).
+    
+    // 3. Re-render both areas
+    renderGroups(targetShift);
+    renderUnassignedChatters(targetShift);
+}
+
+
+// --- TAB LOGIC ---
+document.addEventListener('DOMContentLoaded', () => {
+    const shiftTabs = document.querySelectorAll('.shift-tab');
+    const shiftContents = document.querySelectorAll('.shift-content');
+    const processBtn = document.getElementById('process-btn');
+
+    // Tab switching logic
+    shiftTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const shift = tab.getAttribute('data-shift');
+
+            shiftTabs.forEach(t => {
+                t.classList.remove('text-white', 'bg-[#5D5CDE]');
+                t.classList.add('text-gray-600', 'hover:bg-gray-200');
             });
-            const unassigned = allChatters.filter(c => !assignedChatters.has(c));
-            selectedChattersForAssignment = [...unassigned];
-            renderUnassignedChatters(shift);
-            updateAssignmentBanner(shift);
-        }
-        function deselectAll(shift) {
-            selectedChattersForAssignment = [];
-            renderUnassignedChatters(shift);
-            updateAssignmentBanner(shift);
-        }
-        
-        // --- MODIFIED: `confirmAssignment` adds objects, not strings ---
-        function confirmAssignment(shift) {
-            const group = shiftAllocations[shift].groups.find(g => g.id === currentAssignmentGroupId);
-            if (group && selectedChattersForAssignment.length > 0) {
-                selectedChattersForAssignment.forEach(chatterName => {
-                    // Check if chatter (by name) is already in the group
-                    if (!group.chatters.find(c => c.name === chatterName)) {
-                        group.chatters.push({ name: chatterName, hiddenModels: [] }); // Add as object
-                    }
-                });
-            }
-            selectedChattersForAssignment = [];
-            currentAssignmentShift = null;
-            currentAssignmentGroupId = null;
-            const banner = document.getElementById('assignment-banner');
-            if (banner) banner.remove();
-            renderGroups(shift);
-        }
-        function cancelAssignment(shift) {
-            selectedChattersForAssignment = [];
-            currentAssignmentShift = null;
-            currentAssignmentGroupId = null;
-            const banner = document.getElementById('assignment-banner');
-            if (banner) banner.remove();
-            renderGroups(shift);
-            renderUnassignedChatters(shift);
-        }
-        
-        // --- MODIFIED: `removeChatterFromGroup` filters objects by name ---
-        function removeChatterFromGroup(shift, groupId, chatterName) {
-            const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
-            if (group) {
-                group.chatters = group.chatters.filter(c => c.name !== chatterName);
-                renderGroups(shift);
-            }
-        }
-        
-        function removeGroup(shift, groupId) {
-            shiftAllocations[shift].groups = shiftAllocations[shift].groups.filter(g => g.id !== groupId);
-            renderGroups(shift);
-        }
-        
-        // Switch shift tabs (Unchanged)
-        document.querySelectorAll('.shift-tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                const shift = this.dataset.shift;
-                document.querySelectorAll('.shift-tab').forEach(t => {
-                    t.classList.remove('bg-[#5D5CDE]', 'text-white');
-                    t.classList.add('text-gray-600');
-                });
-                this.classList.add('bg-[#5D5CDE]', 'text-white');
-                this.classList.remove('text-gray-600');
-                document.querySelectorAll('.shift-content').forEach(c => c.classList.add('hidden'));
-                document.getElementById(`shift-${shift}-content`).classList.remove('hidden');
+            tab.classList.add('text-white', 'bg-[#5D5CDE]');
+            tab.classList.remove('text-gray-600', 'hover:bg-gray-200');
+
+            shiftContents.forEach(content => {
+                content.classList.add('hidden');
             });
+            document.getElementById(`shift-${shift}-content`).classList.remove('hidden');
+        });
+    });
+
+    // Event listener for the main Process button
+    processBtn.addEventListener('click', processAllFiles);
+});
+
+// --- REPORT GENERATION (Stubbed) ---
+function generateReport() {
+    const resultsContainer = document.getElementById('results-container');
+    const allocationSection = document.getElementById('allocation-section');
+    const resultsSection = document.getElementById('results');
+    
+    // Update button state
+    document.getElementById('lock-allocations-btn').textContent = 'Allocations Locked - Generating Report...';
+    document.getElementById('lock-allocations-btn').classList.add('opacity-50', 'cursor-not-allowed');
+    updateAllocationStatus();
+
+    // Hide allocation, show results
+    allocationSection.classList.add('hidden');
+    resultsSection.classList.remove('hidden');
+
+    // Clear previous results
+    resultsContainer.innerHTML = '';
+    
+    const quarterLabels = ['Q1', 'Q2', 'Q3', 'Q4'].filter((_, idx) => quarterData[`q${idx + 1}`] !== null);
+
+    // Group results by Shift and then Group
+    for (let shift = 1; shift <= 3; shift++) {
+        const groups = shiftAllocations[shift].groups;
+
+        if (groups.length === 0) continue; // Skip shifts with no groups
+
+        let shiftHtml = `<div class="page-break-after">
+            <h3 class="text-3xl font-extrabold text-[#5D5CDE] mb-6">Shift ${shift} Performance Report</h3>`;
+
+        groups.forEach(group => {
+            if (group.chatters.length === 0) return;
+
+            shiftHtml += `<div class="mb-8">
+                <div class="bg-gray-100 p-3 rounded-t-lg flex justify-between items-center" id="group-${group.id}">
+                    <h4 class="text-xl font-bold text-gray-800">${group.name} - ${group.manager}</h4>
+                    <button onclick="showAllModels('group-${group.id}')" class="bg-indigo-400 hover:bg-indigo-500 text-white font-semibold py-1 px-3 rounded-md transition duration-200 text-sm no-print">
+                        Show All Hidden Models
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 p-4 bg-white border border-gray-300 rounded-b-lg chatter-wall">`;
+
+            group.chatters.forEach(chatterName => {
+                const modelsData = chatterModels[chatterName];
+                if (modelsData && modelsData.length > 0) {
+                    shiftHtml += createChatterTable(chatterName, modelsData, quarterLabels);
+                }
+            });
+
+            shiftHtml += `</div></div>`; // Close group div and inner content
         });
 
-        // --- Drag and Drop Functions (Unchanged) ---
-        function dragStart(event, shift, groupId) {
-            draggedGroupId = groupId;
-            draggedShift = shift;
-            event.dataTransfer.setData('text/plain', groupId);
-            event.dataTransfer.effectAllowed = 'move';
-            setTimeout(() => {
-                event.target.classList.add('opacity-50', 'ring-2', 'ring-[#5D5CDE]');
-            }, 0);
-        }
-        function dragEnd(event) {
-            event.target.classList.remove('opacity-50', 'ring-2', 'ring-[#5D5CDE]');
-            draggedGroupId = null;
-            draggedShift = null;
-        }
-        function dragOver(event) {
-            event.preventDefault();
-            event.dataTransfer.dropEffect = 'move';
-        }
-        function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.opacity-50)')];
-            return draggableElements.reduce((closest, child) => {
-                const box = child.getBoundingClientRect();
-                const offset = y - box.top - box.height / 2;
-                if (offset < 0 && offset > closest.offset) {
-                    return { offset: offset, element: child };
-                } else {
-                    return closest;
-                }
-            }, { offset: Number.NEGATIVE_INFINITY }).element;
-        }
-        function drop(event, targetShift) {
-            event.preventDefault();
-            if (draggedShift !== targetShift) return; 
+        shiftHtml += `</div>`; // Close shift container
+        resultsContainer.innerHTML += shiftHtml;
+    }
+}
 
-            const container = document.getElementById(`shift-${targetShift}-groups`);
-            const afterElement = getDragAfterElement(container, event.clientY);
-            
-            const groupList = shiftAllocations[targetShift].groups;
-            const draggedGroupIndex = groupList.findIndex(g => g.id === draggedGroupId);
-            if (draggedGroupIndex === -1) return;
-            
-            const draggedGroup = groupList.splice(draggedGroupIndex, 1)[0]; 
 
-            if (afterElement == null) {
-                groupList.push(draggedGroup);
-            } else {
-                const targetId = parseInt(afterElement.id.split('-').pop());
-                const targetIndex = groupList.findIndex(g => g.id === targetId);
-                groupList.splice(targetIndex, 0, draggedGroup);
-            }
-            renderGroups(targetShift);
-        }
-        // --- End Drag and Drop ---
-        
-        // --- NEW: Modal Functions ---
-        function openManageModelsModal(shift, groupId, chatterName) {
-            const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
-            if (!group) return;
-            const chatterObj = group.chatters.find(c => c.name === chatterName);
-            if (!chatterObj) return;
+// --- UTILITY FUNCTIONS ---
+function clearAll() {
+    // Reset file inputs
+    document.getElementById('file-q1').value = '';
+    document.getElementById('file-q2').value = '';
+    document.getElementById('file-q3').value = '';
+    document.getElementById('file-q4').value = '';
 
-            const modelsForChatter = allModels[chatterName] || [];
-            const hiddenModelsSet = new Set(chatterObj.hiddenModels);
+    // Clear statuses
+    document.getElementById('q1-status').textContent = '';
+    document.getElementById('q2-status').textContent = '';
+    document.getElementById('q3-status').textContent = '';
+    document.getElementById('q4-status').textContent = '';
 
-            let checkboxesHTML = '';
-            if (modelsForChatter.length > 0) {
-                checkboxesHTML = modelsForChatter.map(model => {
-                    const isChecked = !hiddenModelsSet.has(model);
-                    return `
-                        <label class="flex items-center space-x-3 p-2 rounded hover:bg-gray-100">
-                            <input type="checkbox" name="model-toggle" value="${model}" 
-                                   class="form-checkbox h-5 w-5 text-[#5D5CDE] rounded" 
-                                   ${isChecked ? 'checked' : ''}>
-                            <span class="text-gray-800">${model}</span>
-                        </label>
-                    `;
-                }).join('');
-            } else {
-                checkboxesHTML = '<p class="text-gray-600">No models found for this chatter.</p>';
-            }
+    // Reset data
+    quarterData.q1 = null;
+    quarterData.q2 = null;
+    quarterData.q3 = null;
+    quarterData.q4 = null;
+    allChatters = [];
+    chatterModels = {};
 
-            const modalHTML = `
-                <div id="manage-models-modal-backdrop" onclick="closeManageModelsModal()">
-                    <div id="manage-models-modal" onclick="event.stopPropagation()">
-                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Manage Models for ${chatterName}</h3>
-                        <p class="text-sm text-gray-600 mb-4">Un-check models to hide them from the final report.</p>
-                        
-                        <div class="space-y-2 max-h-60 overflow-y-auto mb-6 p-2 border rounded-md">
-                            ${checkboxesHTML}
-                        </div>
+    // Reset allocations
+    confirmReset();
 
-                        <div class="flex justify-end gap-3">
-                            <button type="button" onclick="closeManageModelsModal()" 
-                                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
-                                Cancel
-                            </button>
-                            <button type="button" onclick="saveModelPreferences(${shift}, ${groupId}, '${chatterName}')" 
-                                    class="px-4 py-2 bg-[#5D5CDE] text-white rounded-md hover:bg-[#4D4CCE]">
-                                Save
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('modal-container').innerHTML = modalHTML;
-        }
+    // Hide sections and errors
+    document.getElementById('allocation-section').classList.add('hidden');
+    document.getElementById('results').classList.add('hidden');
+    document.getElementById('error-container').classList.add('hidden');
+}
 
-        function closeManageModelsModal() {
-            document.getElementById('modal-container').innerHTML = '';
-        }
+function showAllocationSection() {
+    document.getElementById('results').classList.add('hidden');
+    document.getElementById('allocation-section').classList.remove('hidden');
+}
 
-        function saveModelPreferences(shift, groupId, chatterName) {
-            const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
-            if (!group) return;
-            const chatterObj = group.chatters.find(c => c.name === chatterName);
-            if (!chatterObj) return;
 
-            const newHiddenModels = [];
-            document.querySelectorAll('#manage-models-modal input[name="model-toggle"]').forEach(checkbox => {
-                if (!checkbox.checked) {
-                    newHiddenModels.push(checkbox.value);
-                }
-            });
+function showCustomAlert(message) {
+    const alertBox = document.createElement('div');
+    alertBox.className = 'fixed top-4 right-4 bg-red-500 text-white p-3 rounded-md shadow-lg z-50 transition-transform transform-gpu duration-300 ease-out translate-x-full';
+    alertBox.textContent = message;
+    document.body.appendChild(alertBox);
 
-            chatterObj.hiddenModels = newHiddenModels;
-            closeManageModelsModal();
-            renderGroups(shift); // Re-render to show asterisk if needed
-        }
-        // --- End Modal Functions ---
+    // Show the alert
+    setTimeout(() => {
+        alertBox.classList.remove('translate-x-full');
+    }, 10); // Small delay for transition to work
 
-        // --- MODIFIED: `generateReport` passes `hiddenModels` ---
-        function generateReport() {
-            const resultsContainer = document.getElementById('results-container');
-            const results = document.getElementById('results');
-            const allocationSection = document.getElementById('allocation-section');
-            resultsContainer.innerHTML = '';
-            const quarters = ['q1', 'q2', 'q3', 'q4'];
-            const quarterLabels = quarters.map((q, i) => quarterData[q] ? `Q${i + 1}` : null).filter(q => q);
-            
-            for (let shift = 1; shift <= 3; shift++) {
-                if (shiftAllocations[shift].groups.length === 0) continue;
-                
-                let shiftHTML = `
-                    <div class="page-break-after mb-6">
-                        <h2 class="text-xl font-bold text-gray-900 mb-3 pb-1 border-b-2 border-[#5D5CDE]">Shift ${shift}</h2>
-                `;
-                
-                shiftAllocations[shift].groups.forEach(group => {
-                    const groupReportId = `group-report-${shift}-${group.id}`;
-                    const safeFilename = `${group.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`; 
-                    
-                    // --- MODIFIED: Removed "Show Hidden" button ---
-                    shiftHTML += `
-                        <div id="${groupReportId}" class="mb-4 p-3 bg-gray-50 rounded border-8 border-black">
-                            <div class="mb-2 pb-1 border-b border-gray-300 flex justify-between items-center">
-                                <h3 class="text-lg font-bold text-[#5D5CDE] w-1/3">
-                                    ${group.name}
-                                </h3>
-                                <div class="w-1/3 text-center">
-                                    <span class="text-xl font-semibold text-gray-700">
-                                        Manager: ${group.manager}
-                                    </span>
-                                </div>
-                                <div class="flex gap-2 no-print w-1/3 justify-end">
-                                    <button onclick="downloadGroupImage(this, '${groupReportId}', '${safeFilename}-full.png')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Download All
-                                    </button>
-                                    <button onclick="copyGroupImage(this, '${groupReportId}')" class="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Copy All
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 gap-2">
-                    `;
-                                        
-                    const chattersPerSection = 5;
-                    let chatterBuffer = '';
-                                         
-                    // --- MODIFIED: Loop through chatter objects ---
-                    group.chatters.forEach((chatterObj, chatterIndex) => {
-                        if (chatterModels[chatterObj.name]) {
-                            // --- PASS `chatterObj.hiddenModels` to the create function ---
-                            chatterBuffer += createChatterTable(
-                                chatterObj.name, 
-                                chatterModels[chatterObj.name], 
-                                quarterLabels, 
-                                chatterObj.hiddenModels
-                            );
-                        }
+    // Hide and remove after 3 seconds
+    setTimeout(() => {
+        alertBox.classList.add('translate-x-full');
+        alertBox.addEventListener('transitionend', () => alertBox.remove());
+    }, 3000);
+}
 
-                        if ((chatterIndex + 1) % chattersPerSection === 0 || chatterIndex === group.chatters.length - 1) {
-                            const sectionIndex = Math.floor(chatterIndex / chattersPerSection);
-                            const sectionId = `${groupReportId}-section-${sectionIndex}`;
-                            const sectionFilename = `${safeFilename}-section${sectionIndex + 1}.png`;
-                                                        
-                            shiftHTML += `<div id="${sectionId}" class="mb-4 p-3 bg-gray-100 rounded border border-gray-300">`;
-                            shiftHTML += chatterBuffer;
-                                                         
-                            shiftHTML += `
-                                <div class="flex gap-2 justify-end no-print mt-2 -mr-1 -mb-1">
-                                    <button onclick="downloadGroupImage(this, '${sectionId}', '${sectionFilename}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Download Section
-                                    </button>
-                                    <button onclick="copyGroupImage(this, '${sectionId}')" class="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Copy Section
-                                    </button>
-                                </div>
-                            `;
-                                                        
-                            shiftHTML += `</div>`;
-                            chatterBuffer = '';
-                        }
-                    });
-                                        
-                    shiftHTML += `
-                            </div>
-                        </div>
-                    `;
-                });
-                shiftHTML += `</div>`;
-                resultsContainer.innerHTML += shiftHTML;
-            }
-            
-            allocationSection.classList.add('hidden');
-            results.classList.remove('hidden');
-        }
-                
-        // --- Image Generation & Utility Functions (Unchanged) ---
-        function generateGroupBlob(elementId) {
-            return new Promise((resolve, reject) => {
-                const element = document.getElementById(elementId);
-                const originalBg = element.style.backgroundColor;
-                const originalFontSize = element.style.fontSize;
-                element.style.backgroundColor = '#ffffff'; 
-                element.style.fontSize = '14pt';
-                
-                const buttonsToHide = element.querySelectorAll('.no-print');
-                buttonsToHide.forEach(btn => btn.style.display = 'none');
-                
-                html2canvas(element, {
-                    scale: 3, 
-                    useCORS: true,
-                    window: window, 
-                     onclone: (clonedDoc) => {
-                        const clonedElement = clonedDoc.getElementById(elementId);
-                        clonedElement.style.backgroundColor = originalBg;
-                        clonedElement.style.fontSize = '14pt';
-                        clonedDoc.querySelectorAll('.no-print').forEach(btn => btn.style.display = 'none');
-                    }
-                }).then(canvas => {
-                    element.style.backgroundColor = originalBg;
-                    element.style.fontSize = originalFontSize; 
-                    buttonsToHide.forEach(btn => btn.style.display = '');
-                    
-                    canvas.toBlob(blob => {
-                        if (blob) {
-                            resolve(blob);
-                        } else {
-                            reject(new Error('Canvas to Blob conversion failed'));
-                        }
-                    }, 'image/png');
-                }).catch(err => {
-                    element.style.backgroundColor = originalBg;
-                    element.style.fontSize = originalFontSize; 
-                    buttonsToHide.forEach(btn => btn.style.display = '');
-                    reject(err);
-                });
-            });
-        }
-        
-        async function downloadGroupImage(buttonEl, elementId, filename) {
-            const originalText = buttonEl.innerHTML;
-            buttonEl.innerHTML = '...';
-            buttonEl.disabled = true;
 
-            try {
-                const blob = await generateGroupBlob(elementId);
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = filename;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(link.href);
+// Bind event listeners to process and clear buttons (if not already done via HTML onclick)
+document.getElementById('process-btn').onclick = processAllFiles;
+document.getElementById('clear-all-btn').onclick = clearAll;
+// The tab switching logic is already in the DOMContentLoaded block
 
-            } catch (err) {
-                console.error('Download error:', err);
-                showCustomAlert('Could not download image. See console for details.');
-            } finally {
-                buttonEl.innerHTML = originalText;
-                buttonEl.disabled = false;
-            }
-        }
-        
-        async function copyGroupImage(buttonEl, elementId) {
-            if (!navigator.clipboard || !navigator.clipboard.write) {
-                showCustomAlert('Clipboard API not supported or blocked in this browser.');
-                return;
-            }
+// Initialize the display for the first time
+initializeAllocation();
 
-            const originalText = buttonEl.innerHTML;
-            buttonEl.innerHTML = '...';
-            buttonEl.disabled = true;
-
-            try {
-                const blob = await generateGroupBlob(elementId);
-                const item = new ClipboardItem({ 'image/png': blob });
-                await navigator.clipboard.write([item]);
-                showCustomAlert('Image copied to clipboard!');
-
-            } catch (err) {
-                console.error('Copy error:', err);
-                showCustomAlert('Could not copy image. See console for details.');
-            } finally {
-                buttonEl.innerHTML = originalText;
-                buttonEl.disabled = false;
-            }
-        }
-        
-        function showAllocationSection() {
-            document.getElementById('allocation-section').classList.remove('hidden');
-            document.getElementById('results').classList.add('hidden');
-        }
-        
-        function showCustomAlert(message) {
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            modal.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                    <p class="text-gray-700 mb-4">${message}</p>
-                    <div class="flex justify-end">
-                        <button class="px-4 py-2 bg-[#5D5CDE] text-white hover:bg-[#4D4CCE] rounded" onclick="this.closest('.fixed').remove()">OK</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        
-        function clearAll() {
-            const modal = document.createElement('div');
-            modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-            modal.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                    <p class="text-gray-700 mb-4 font-semibold">Are you sure you want to clear everything?</p>
-                    <p class="text-gray-600 text-sm mb-4">This will remove all uploaded files and reset all allocations.</p>
-                    <div class="flex justify-end gap-3">
-                        <button class="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 rounded" onclick="this.closest('.fixed').remove()">Cancel</button>
-                        <button class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded" onclick="confirmClearAll(); this.closest('.fixed').remove()">Clear All</button>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(modal);
-        }
-        function confirmClearAll() {
-            document.getElementById('file-q1').value = '';
-            document.getElementById('file-q2').value = '';
-            document.getElementById('file-q3').value = '';
-            document.getElementById('file-q4').value = '';
-            quarterData.q1 = null;
-            quarterData.q2 = null;
-            quarterData.q3 = null;
-            quarterData.q4 = null;
-            document.getElementById('q1-status').textContent = '';
-            document.getElementById('q2-status').textContent = '';
-            document.getElementById('q3-status').textContent = '';
-            document.getElementById('q4-status').textContent = '';
-            shiftAllocations[1].groups = [];
-            shiftAllocations[2].groups = [];
-            shiftAllocations[3].groups = [];
-            allocationsLocked = false;
-            allChatters = [];
-            allModels = {};
-            chatterModels = {};
-            document.getElementById('lock-allocations-btn').textContent = 'Lock Allocations & Process Data';
-            document.getElementById('lock-allocations-btn').classList.remove('opacity-50', 'cursor-not-allowed');
-            document.getElementById('allocation-section').classList.add('hidden');
-            document.getElementById('results').classList.add('hidden');
-            document.getElementById('error-container').classList.add('hidden');
-            updateAllocationStatus();
-        }
-                
-        document.addEventListener('DOMContentLoaded', (event) => {
-            document.getElementById('process-btn').addEventListener('click', processAllFiles);
-            
-            // Unload warning
-            window.addEventListener('beforeunload', function (e) {
-                if (quarterData.q1 || quarterData.q2 || quarterData.q3 || quarterData.q4 || allChatters.length > 0) {
-                    e.preventDefault();
-                    e.returnValue = 'Are you sure you want to leave? All uploaded data will be lost.';
-                }
-            });
-        });
-    </script>
-</body>
-</html>
+</script>
