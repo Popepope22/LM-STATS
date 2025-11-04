@@ -18,6 +18,24 @@
         @media screen {
             .page-break-after { margin-bottom: 2rem; }
         }
+        /* Style for the new modal */
+        #manage-models-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        #manage-models-modal {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 90%;
+            max-width: 400px;
+        }
     </style>
 </head>
 <body class="bg-white min-h-screen">
@@ -163,6 +181,8 @@
         </div>
     </div>
 
+    <div id="modal-container"></div>
+
     <script>
         // Data storage
         const quarterData = {
@@ -173,17 +193,21 @@
         };
         // Allocation data
         let allChatters = [];
-        let allModels = {};
+        let allModels = {}; // Stores all models for a chatter, e.g., allModels['Dee'] = ['Model A', 'Model B']
+        
+        // --- MODIFIED: shiftAllocations stores objects ---
         const shiftAllocations = {
             1: { groups: [] },
             2: { groups: [] },
             3: { groups: [] }
+            // Example group: { id: 123, name: 'Group 1', manager: 'IAN', chatters: [ { name: 'Dee', hiddenModels: ['Model A'] } ] }
         };
-        let chatterModels = {};
+
+        let chatterModels = {}; // Stores quarterly data for chatter-model pairs
         let selectedChattersForAssignment = [];
         let allocationsLocked = false;
 
-        // --- NEW: Drag and drop state ---
+        // Drag and drop state
         let draggedGroupId = null;
         let draggedShift = null;
 
@@ -228,17 +252,7 @@
             });
             return Object.values(processed);
         }
-        // Group data by chatter
-        function groupByChatter(processedData) {
-            const grouped = {};
-            processedData.forEach(entry => {
-                if (!grouped[entry.chatter]) {
-                    grouped[entry.chatter] = [];
-                }
-                grouped[entry.chatter].push(entry);
-            });
-            return grouped;
-        }
+        
         // Color palette for models
         const modelColors = [
             { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-900' },
@@ -251,10 +265,17 @@
             { bg: 'bg-rose-50', border: 'border-rose-400', text: 'text-rose-900' }
         ];
                 
-        // --- Create table HTML (White Mode) ---
-        // --- MODIFIED: modelsPerRow = 1, added hide button, adjusted widths ---
-        function createChatterTable(chatter, modelsData, quarterLabels) {
-            modelsData.sort((a, b) => a.model.localeCompare(b.model));
+        // --- MODIFIED: `createChatterTable` now accepts `hiddenModels` ---
+        function createChatterTable(chatter, modelsData, quarterLabels, hiddenModels = []) {
+            
+            // --- NEW: Filter out hidden models ---
+            const visibleModelsData = modelsData.filter(modelEntry => 
+                !hiddenModels.includes(modelEntry.model)
+            );
+
+            if (visibleModelsData.length === 0) return ''; // Don't render a table if all models are hidden
+
+            visibleModelsData.sort((a, b) => a.model.localeCompare(b.model));
             const metrics = [
                 { label: 'Fans chatted with', key: 'fansChatted' },
                 { label: 'Messages sent', key: 'messagesSent' },
@@ -264,19 +285,18 @@
             const maxQuarters = 4;
             const allQuarterSlots = ['Q1', 'Q2', 'Q3', 'Q4'];
             
-            // --- MODIFIED: Set modelsPerRow to 1 ---
-            const modelsPerRow = 1; 
+            const modelsPerRow = 1; // Stack models vertically
             
             const modelRows = [];
-            for (let i = 0; i < modelsData.length; i += modelsPerRow) {
-                modelRows.push(modelsData.slice(i, i + modelsPerRow));
+            for (let i = 0; i < visibleModelsData.length; i += modelsPerRow) {
+                modelRows.push(visibleModelsData.slice(i, i + modelsPerRow));
             }
             let html = `
                 <div class="bg-white rounded border border-gray-300 mb-2 break-inside-avoid shadow-sm">
                     <div class="bg-[#5D5CDE] text-white px-3 py-2 flex justify-center items-center relative">
                         <h4 class="text-lg font-bold text-center">${chatter}</h4>
                         <span class="text-xs opacity-75 absolute right-3">
-                            ${modelsData.length} model${modelsData.length > 1 ? 's' : ''}
+                            ${visibleModelsData.length} model${visibleModelsData.length > 1 ? 's' : ''}
                         </span>
                     </div>
             `;
@@ -286,8 +306,7 @@
                     rowModels.push(null);
                 }
 
-                // --- NEW: Add unique ID for model container ---
-                const modelEntry = rowModels[0]; // Since modelsPerRow is 1
+                const modelEntry = rowModels[0];
                 const modelId = `${chatter.replace(/[^a-z0-9]/gi, '_')}-${modelEntry.model.replace(/[^a-z0-9]/gi, '_')}-${rowIdx}`;
 
                 html += `
@@ -301,19 +320,14 @@
                     const colorIdx = (rowIdx * modelsPerRow + idx) % modelColors.length;
                     const color = modelColors[colorIdx];
                     if (modelEntry) {
-                        // --- MODIFIED: Added flex-wrapper and Hide button, changed width to 20% ---
+                        // --- MODIFIED: Removed [Hide] button ---
                         html += `<th rowspan="2" class="px-1 py-1 text-left font-bold text-sm ${color.text} ${color.bg} border-b border-l border-t ${color.border}" style="width: 20%; border-width: 2px; white-space: nowrap;">
-                                    <div class="flex justify-between items-center pr-1">
-                                        <span>${modelEntry.model}</span>
-                                        <button onclick="hideModel('model-container-${modelId}')" class="text-xs font-normal text-white/70 hover:text-white no-print">[Hide]</button>
-                                    </div>
+                                    ${modelEntry.model}
                                 </th>`;
                         
                         allQuarterSlots.forEach(q => {
-                            // --- MODIFIED: Changed width to 15% ---
                             html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-gray-300" style="width: 15%; border-width: 1px; white-space: nowrap;">${q}</th>`;
                         });
-                        // --- MODIFIED: Changed width to 20% ---
                         html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-r ${color.border}" style="width: 20%; border-width: 2px; white-space: nowrap;">Total</th>`;
                     } else {
                         html += `<th colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50 border-b border-gray-300" style="width: 100%; border-width: 1px;"></th>`;
@@ -389,22 +403,7 @@
             return html;
         }
 
-        // --- NEW: Hide/Show Model Functions ---
-        function hideModel(elementId) {
-            const el = document.getElementById(elementId);
-            if (el) {
-                el.style.display = 'none';
-            }
-        }
-
-        function showAllModels(groupId) {
-            const groupElement = document.getElementById(groupId);
-            if (!groupElement) return;
-            const hiddenModels = groupElement.querySelectorAll('.overflow-x-auto');
-            hiddenModels.forEach(modelDiv => {
-                modelDiv.style.display = 'block';
-            });
-        }
+        // --- REMOVED `hideModel` and `showAllModels` functions ---
         
         // Main processing function
         async function processAllFiles() {
@@ -445,7 +444,7 @@
                 });
                 allChatters = Array.from(allChattersSet).sort();
                 chatterModels = {};
-                allModels = {};
+                allModels = {}; // Reset allModels
                 allChatters.forEach(chatter => {
                     const models = new Set();
                     quarters.forEach(q => {
@@ -457,7 +456,10 @@
                             });
                         }
                     });
-                    allModels[chatter] = Array.from(models);
+                    
+                    // --- MODIFIED: Populate allModels ---
+                    allModels[chatter] = Array.from(models).sort(); // Store all models for the modal
+                    
                     chatterModels[chatter] = Array.from(models).map(model => {
                         const quarterValues = quarters.map((q, idx) => {
                             if (quarterData[q]) {
@@ -481,7 +483,6 @@
             }
         }
         
-        // Update allocation status display
         function updateAllocationStatus() {
             const statusEl = document.getElementById('allocation-status');
             if (allocationsLocked) {
@@ -492,7 +493,6 @@
             }
         }
         
-        // Initialize allocation interface
         function initializeAllocation() {
             if (allocationsLocked) {
                 for (let shift = 1; shift <= 3; shift++) {
@@ -508,7 +508,6 @@
             }
         }
         
-        // Lock allocations and generate report
         function lockAllocations() {
             if (allocationsLocked) {
                 generateReport();
@@ -529,7 +528,6 @@
             generateReport();
         }
         
-        // Reset all allocations
         function resetAllocations() {
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
@@ -557,12 +555,12 @@
         }
 
         // --- Chatter Search & Assignment ---
-        // Render unassigned chatters
+        // --- MODIFIED: renderUnassignedChatters based on chatter.name ---
         function renderUnassignedChatters(shift) {
             const container = document.getElementById(`shift-${shift}-unassigned`);
             const assignedChatters = new Set();
             shiftAllocations[shift].groups.forEach(group => {
-                group.chatters.forEach(c => assignedChatters.add(c));
+                group.chatters.forEach(c => assignedChatters.add(c.name)); // Get name from object
             });
             
             const unassigned = allChatters.filter(c => !assignedChatters.has(c));
@@ -613,7 +611,6 @@
             }
         }
         
-        // Add group
         function addGroup(shift) {
             const groupNameInput = document.getElementById(`shift-${shift}-group-name`);
             const managerNameInput = document.getElementById(`shift-${shift}-manager-name`);
@@ -627,7 +624,7 @@
                 id: Date.now(),
                 name: groupName,
                 manager: managerName,
-                chatters: []
+                chatters: [] // This will hold objects: { name: 'Chatter', hiddenModels: [] }
             };
             shiftAllocations[shift].groups.push(group);
             groupNameInput.value = '';
@@ -635,7 +632,7 @@
             renderGroups(shift);
         }
         
-        // --- MODIFIED: Added draggable, edit form, and edit buttons ---
+        // --- MODIFIED: `renderGroups` to show chatter tag with modal link ---
         function renderGroups(shift) {
             const container = document.getElementById(`shift-${shift}-groups`);
             container.innerHTML = shiftAllocations[shift].groups.map(group => {
@@ -668,10 +665,13 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap gap-2" id="shift-${shift}-group-${group.id}-chatters">
-                        ${group.chatters.length > 0 ? group.chatters.map(chatter =>
+                        ${group.chatters.length > 0 ? group.chatters.map(chatterObj =>
+                            // --- MODIFIED: Tag now opens modal, remove button is separate ---
                             `<span class="bg-[#5D5CDE] text-white px-3 py-1 rounded-md text-sm flex items-center gap-2">
-                                ${chatter}
-                                <button onclick="removeChatterFromGroup(${shift}, ${group.id}, '${chatter}')" class="hover:text-red-300">×</button>
+                                <button onclick="openManageModelsModal(${shift}, ${group.id}, '${chatterObj.name}')" class="hover:underline">
+                                    ${chatterObj.name} ${chatterObj.hiddenModels.length > 0 ? '*' : ''}
+                                </button>
+                                <button onclick="removeChatterFromGroup(${shift}, ${group.id}, '${chatterObj.name}')" class="hover:text-red-300">×</button>
                             </span>`
                         ).join('') : '<p class="text-gray-500 text-sm italic">No chatters assigned yet</p>'}
                     </div>
@@ -681,13 +681,10 @@
             renderUnassignedChatters(shift);
         }
 
-        // --- NEW: Group Edit Functions ---
+        // --- Group Edit Functions (Unchanged) ---
         function toggleGroupEdit(shift, groupId) {
-            // Hide display, show edit form
             document.getElementById(`group-display-${shift}-${groupId}`).classList.add('hidden');
             document.getElementById(`group-edit-${shift}-${groupId}`).classList.remove('hidden');
-
-            // Change buttons
             const buttonsDiv = document.getElementById(`group-buttons-${shift}-${groupId}`);
             buttonsDiv.innerHTML = `
                 <button onclick="saveGroupEdit(${shift}, ${groupId})" class="bg-green-600 hover:bg-green-700 text-white text-sm px-3 py-1 rounded-md">Save</button>
@@ -709,15 +706,14 @@
                 group.name = newGroupName;
                 group.manager = newManagerName;
             }
-            renderGroups(shift); // This will re-render and switch back to display mode
-        }
-
-        function cancelGroupEdit(shift, groupId) {
-            // Just re-render, no changes saved
             renderGroups(shift);
         }
 
-        // Assign chatter to group
+        function cancelGroupEdit(shift, groupId) {
+            renderGroups(shift);
+        }
+        // --- End Group Edit Functions ---
+
         let currentAssignmentShift = null;
         let currentAssignmentGroupId = null;
         function assignChatterToGroup(shift, groupId) {
@@ -737,7 +733,7 @@
             if (!group) return;
             const assignedChatters = new Set();
             shiftAllocations[shift].groups.forEach(g => {
-                g.chatters.forEach(c => assignedChatters.add(c));
+                g.chatters.forEach(c => assignedChatters.add(c.name));
             });
             const unassigned = allChatters.filter(c => !assignedChatters.has(c));
             const selectedCount = selectedChattersForAssignment.length;
@@ -770,7 +766,7 @@
         function selectAllUnassigned(shift) {
             const assignedChatters = new Set();
             shiftAllocations[shift].groups.forEach(g => {
-                g.chatters.forEach(c => assignedChatters.add(c));
+                g.chatters.forEach(c => assignedChatters.add(c.name));
             });
             const unassigned = allChatters.filter(c => !assignedChatters.has(c));
             selectedChattersForAssignment = [...unassigned];
@@ -782,12 +778,15 @@
             renderUnassignedChatters(shift);
             updateAssignmentBanner(shift);
         }
+        
+        // --- MODIFIED: `confirmAssignment` adds objects, not strings ---
         function confirmAssignment(shift) {
             const group = shiftAllocations[shift].groups.find(g => g.id === currentAssignmentGroupId);
             if (group && selectedChattersForAssignment.length > 0) {
-                selectedChattersForAssignment.forEach(chatter => {
-                    if (!group.chatters.includes(chatter)) {
-                        group.chatters.push(chatter);
+                selectedChattersForAssignment.forEach(chatterName => {
+                    // Check if chatter (by name) is already in the group
+                    if (!group.chatters.find(c => c.name === chatterName)) {
+                        group.chatters.push({ name: chatterName, hiddenModels: [] }); // Add as object
                     }
                 });
             }
@@ -808,22 +807,21 @@
             renderUnassignedChatters(shift);
         }
         
-        // Remove chatter from group
-        function removeChatterFromGroup(shift, groupId, chatter) {
+        // --- MODIFIED: `removeChatterFromGroup` filters objects by name ---
+        function removeChatterFromGroup(shift, groupId, chatterName) {
             const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
             if (group) {
-                group.chatters = group.chatters.filter(c => c !== chatter);
+                group.chatters = group.chatters.filter(c => c.name !== chatterName);
                 renderGroups(shift);
             }
         }
         
-        // Remove group
         function removeGroup(shift, groupId) {
             shiftAllocations[shift].groups = shiftAllocations[shift].groups.filter(g => g.id !== groupId);
             renderGroups(shift);
         }
         
-        // Switch shift tabs
+        // Switch shift tabs (Unchanged)
         document.querySelectorAll('.shift-tab').forEach(tab => {
             tab.addEventListener('click', function() {
                 const shift = this.dataset.shift;
@@ -838,33 +836,27 @@
             });
         });
 
-        // --- NEW: Drag and Drop Functions ---
+        // --- Drag and Drop Functions (Unchanged) ---
         function dragStart(event, shift, groupId) {
             draggedGroupId = groupId;
             draggedShift = shift;
             event.dataTransfer.setData('text/plain', groupId);
             event.dataTransfer.effectAllowed = 'move';
-            // Add a visual cue
             setTimeout(() => {
                 event.target.classList.add('opacity-50', 'ring-2', 'ring-[#5D5CDE]');
             }, 0);
         }
-
         function dragEnd(event) {
-            // Remove visual cue
             event.target.classList.remove('opacity-50', 'ring-2', 'ring-[#5D5CDE]');
             draggedGroupId = null;
             draggedShift = null;
         }
-
         function dragOver(event) {
-            event.preventDefault(); // Necessary to allow drop
+            event.preventDefault();
             event.dataTransfer.dropEffect = 'move';
         }
-
         function getDragAfterElement(container, y) {
-            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.opacity-50)')]; // all except the one being dragged
-            
+            const draggableElements = [...container.querySelectorAll('[draggable="true"]:not(.opacity-50)')];
             return draggableElements.reduce((closest, child) => {
                 const box = child.getBoundingClientRect();
                 const offset = y - box.top - box.height / 2;
@@ -875,10 +867,9 @@
                 }
             }, { offset: Number.NEGATIVE_INFINITY }).element;
         }
-
         function drop(event, targetShift) {
             event.preventDefault();
-            if (draggedShift !== targetShift) return; // Only allow drop within the same shift
+            if (draggedShift !== targetShift) return; 
 
             const container = document.getElementById(`shift-${targetShift}-groups`);
             const afterElement = getDragAfterElement(container, event.clientY);
@@ -887,23 +878,96 @@
             const draggedGroupIndex = groupList.findIndex(g => g.id === draggedGroupId);
             if (draggedGroupIndex === -1) return;
             
-            const draggedGroup = groupList.splice(draggedGroupIndex, 1)[0]; // Remove and get group
+            const draggedGroup = groupList.splice(draggedGroupIndex, 1)[0]; 
 
             if (afterElement == null) {
-                // Drop at the end
                 groupList.push(draggedGroup);
             } else {
-                // Drop before afterElement
                 const targetId = parseInt(afterElement.id.split('-').pop());
                 const targetIndex = groupList.findIndex(g => g.id === targetId);
                 groupList.splice(targetIndex, 0, draggedGroup);
             }
-            
-            renderGroups(targetShift); // Re-render to show new order
+            renderGroups(targetShift);
         }
+        // --- End Drag and Drop ---
         
-        // --- Generate Report ---
-        // --- MODIFIED: Added "Show Hidden" button ---
+        // --- NEW: Modal Functions ---
+        function openManageModelsModal(shift, groupId, chatterName) {
+            const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
+            if (!group) return;
+            const chatterObj = group.chatters.find(c => c.name === chatterName);
+            if (!chatterObj) return;
+
+            const modelsForChatter = allModels[chatterName] || [];
+            const hiddenModelsSet = new Set(chatterObj.hiddenModels);
+
+            let checkboxesHTML = '';
+            if (modelsForChatter.length > 0) {
+                checkboxesHTML = modelsForChatter.map(model => {
+                    const isChecked = !hiddenModelsSet.has(model);
+                    return `
+                        <label class="flex items-center space-x-3 p-2 rounded hover:bg-gray-100">
+                            <input type="checkbox" name="model-toggle" value="${model}" 
+                                   class="form-checkbox h-5 w-5 text-[#5D5CDE] rounded" 
+                                   ${isChecked ? 'checked' : ''}>
+                            <span class="text-gray-800">${model}</span>
+                        </label>
+                    `;
+                }).join('');
+            } else {
+                checkboxesHTML = '<p class="text-gray-600">No models found for this chatter.</p>';
+            }
+
+            const modalHTML = `
+                <div id="manage-models-modal-backdrop" onclick="closeManageModelsModal()">
+                    <div id="manage-models-modal" onclick="event.stopPropagation()">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Manage Models for ${chatterName}</h3>
+                        <p class="text-sm text-gray-600 mb-4">Un-check models to hide them from the final report.</p>
+                        
+                        <div class="space-y-2 max-h-60 overflow-y-auto mb-6 p-2 border rounded-md">
+                            ${checkboxesHTML}
+                        </div>
+
+                        <div class="flex justify-end gap-3">
+                            <button type="button" onclick="closeManageModelsModal()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                                Cancel
+                            </button>
+                            <button type="button" onclick="saveModelPreferences(${shift}, ${groupId}, '${chatterName}')" 
+                                    class="px-4 py-2 bg-[#5D5CDE] text-white rounded-md hover:bg-[#4D4CCE]">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = modalHTML;
+        }
+
+        function closeManageModelsModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+
+        function saveModelPreferences(shift, groupId, chatterName) {
+            const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
+            if (!group) return;
+            const chatterObj = group.chatters.find(c => c.name === chatterName);
+            if (!chatterObj) return;
+
+            const newHiddenModels = [];
+            document.querySelectorAll('#manage-models-modal input[name="model-toggle"]').forEach(checkbox => {
+                if (!checkbox.checked) {
+                    newHiddenModels.push(checkbox.value);
+                }
+            });
+
+            chatterObj.hiddenModels = newHiddenModels;
+            closeManageModelsModal();
+            renderGroups(shift); // Re-render to show asterisk if needed
+        }
+        // --- End Modal Functions ---
+
+        // --- MODIFIED: `generateReport` passes `hiddenModels` ---
         function generateReport() {
             const resultsContainer = document.getElementById('results-container');
             const results = document.getElementById('results');
@@ -920,11 +984,11 @@
                         <h2 class="text-xl font-bold text-gray-900 mb-3 pb-1 border-b-2 border-[#5D5CDE]">Shift ${shift}</h2>
                 `;
                 
-                // --- Use the order from shiftAllocations, which is updated by drag-drop ---
                 shiftAllocations[shift].groups.forEach(group => {
                     const groupReportId = `group-report-${shift}-${group.id}`;
                     const safeFilename = `${group.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`; 
                     
+                    // --- MODIFIED: Removed "Show Hidden" button ---
                     shiftHTML += `
                         <div id="${groupReportId}" class="mb-4 p-3 bg-gray-50 rounded border-8 border-black">
                             <div class="mb-2 pb-1 border-b border-gray-300 flex justify-between items-center">
@@ -937,9 +1001,6 @@
                                     </span>
                                 </div>
                                 <div class="flex gap-2 no-print w-1/3 justify-end">
-                                    <button onclick="showAllModels('${groupReportId}')" class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Show Hidden
-                                    </button>
                                     <button onclick="downloadGroupImage(this, '${groupReportId}', '${safeFilename}-full.png')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
                                         Download All
                                     </button>
@@ -954,9 +1015,16 @@
                     const chattersPerSection = 5;
                     let chatterBuffer = '';
                                          
-                    group.chatters.forEach((chatter, chatterIndex) => {
-                        if (chatterModels[chatter]) {
-                            chatterBuffer += createChatterTable(chatter, chatterModels[chatter], quarterLabels);
+                    // --- MODIFIED: Loop through chatter objects ---
+                    group.chatters.forEach((chatterObj, chatterIndex) => {
+                        if (chatterModels[chatterObj.name]) {
+                            // --- PASS `chatterObj.hiddenModels` to the create function ---
+                            chatterBuffer += createChatterTable(
+                                chatterObj.name, 
+                                chatterModels[chatterObj.name], 
+                                quarterLabels, 
+                                chatterObj.hiddenModels
+                            );
                         }
 
                         if ((chatterIndex + 1) % chattersPerSection === 0 || chatterIndex === group.chatters.length - 1) {
@@ -978,8 +1046,8 @@
                                 </div>
                             `;
                                                         
-                            shiftHTML += `</div>`; // Close section div
-                            chatterBuffer = ''; // Reset buffer
+                            shiftHTML += `</div>`;
+                            chatterBuffer = '';
                         }
                     });
                                         
@@ -996,20 +1064,20 @@
             results.classList.remove('hidden');
         }
                 
-        // --- Image Generation & Utility Functions ---
+        // --- Image Generation & Utility Functions (Unchanged) ---
         function generateGroupBlob(elementId) {
             return new Promise((resolve, reject) => {
                 const element = document.getElementById(elementId);
                 const originalBg = element.style.backgroundColor;
                 const originalFontSize = element.style.fontSize;
-                element.style.backgroundColor = '#ffffff'; // Force white background
-                element.style.fontSize = '14pt'; // <-- INCREASED FONT SIZE
+                element.style.backgroundColor = '#ffffff'; 
+                element.style.fontSize = '14pt';
                 
                 const buttonsToHide = element.querySelectorAll('.no-print');
                 buttonsToHide.forEach(btn => btn.style.display = 'none');
                 
                 html2canvas(element, {
-                    scale: 3, // Higher resolution
+                    scale: 3, 
                     useCORS: true,
                     window: window, 
                      onclone: (clonedDoc) => {
@@ -1019,11 +1087,9 @@
                         clonedDoc.querySelectorAll('.no-print').forEach(btn => btn.style.display = 'none');
                     }
                 }).then(canvas => {
-                    // --- RESTORE ---
                     element.style.backgroundColor = originalBg;
-                    element.style.fontSize = originalFontSize; // <-- RESTORE FONT
+                    element.style.fontSize = originalFontSize; 
                     buttonsToHide.forEach(btn => btn.style.display = '');
-                    // --- END RESTORE ---
                     
                     canvas.toBlob(blob => {
                         if (blob) {
@@ -1033,11 +1099,9 @@
                         }
                     }, 'image/png');
                 }).catch(err => {
-                    // --- RESTORE ON ERROR ---
                     element.style.backgroundColor = originalBg;
-                    element.style.fontSize = originalFontSize; // <-- RESTORE FONT
+                    element.style.fontSize = originalFontSize; 
                     buttonsToHide.forEach(btn => btn.style.display = '');
-                    // --- END RESTORE ---
                     reject(err);
                 });
             });
@@ -1155,12 +1219,10 @@
         }
                 
         document.addEventListener('DOMContentLoaded', (event) => {
-            // Main file processing listener
             document.getElementById('process-btn').addEventListener('click', processAllFiles);
             
-            // --- NEW: Add unload warning ---
+            // Unload warning
             window.addEventListener('beforeunload', function (e) {
-                // Check if any files are loaded or allocations made
                 if (quarterData.q1 || quarterData.q2 || quarterData.q3 || quarterData.q4 || allChatters.length > 0) {
                     e.preventDefault();
                     e.returnValue = 'Are you sure you want to leave? All uploaded data will be lost.';
