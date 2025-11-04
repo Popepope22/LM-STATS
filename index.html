@@ -1,10 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatter Performance Tracker</title>
-        
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -18,51 +18,71 @@
         @media screen {
             .page-break-after { margin-bottom: 2rem; }
         }
+        
+        /* --- NEW: Modal Styles --- */
+        #manage-models-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        #manage-models-modal {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 90%;
+            max-width: 400px;
+        }
+        /* Dark mode for modal */
+        .dark #manage-models-modal {
+            background: #1f2937; /* dark:bg-gray-800 */
+        }
     </style>
 </head>
-<body class="bg-white min-h-screen">
+<body class="bg-white dark:bg-gray-900 min-h-screen">
     <div class="container mx-auto p-4 max-w-7xl">
-        <div class="mb-6 flex justify-between items-start">
-            <div>
-                <h1 class="text-3xl font-bold text-gray-900 mb-2">Chatter Performance Tracker</h1>
-                <p class="text-gray-600">Upload up to 4 CSV files (one per quarter) to track chatter performance by model</p>
-            </div>
-            </div>
-                
-        <div class="bg-gray-50 rounded-lg p-6 mb-6 no-print">
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Chatter Performance Tracker</h1>
+            <p class="text-gray-600 dark:text-gray-400">Upload up to 4 CSV files (one per quarter) to track chatter performance by model</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mb-6 no-print">
             <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold text-gray-900">Upload CSV Files</h2>
-                <span id="allocation-status" class="text-sm text-gray-600"></span>
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Upload CSV Files</h2>
+                <span id="allocation-status" class="text-sm text-gray-600 dark:text-gray-400"></span>
             </div>
-            <p class="text-sm text-gray-600 mb-4">Upload 1-4 CSV files. You can upload files incrementally as they become available.</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Upload 1-4 CSV files. You can upload files incrementally as they become available.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                         Quarter 1
                         <span id="q1-status" class="text-xs"></span>
                     </label>
-                    <input type="file" accept=".csv" id="file-q1" class="block w-full text-base px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
+                    <input type="file" accept=".csv" id="file-q1" class="block w-full text-base px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                         Quarter 2
                         <span id="q2-status" class="text-xs"></span>
                     </label>
-                    <input type="file" accept=".csv" id="file-q2" class="block w-full text-base px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
+                    <input type="file" accept=".csv" id="file-q2" class="block w-full text-base px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                         Quarter 3
                         <span id="q3-status" class="text-xs"></span>
                     </label>
-                    <input type="file" accept=".csv" id="file-q3" class="block w-full text-base px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
+                    <input type="file" accept=".csv" id="file-q3" class="block w-full text-base px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                         Quarter 4
                         <span id="q4-status" class="text-xs"></span>
                     </label>
-                    <input type="file" accept=".csv" id="file-q4" class="block w-full text-base px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
+                    <input type="file" accept=".csv" id="file-q4" class="block w-full text-base px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#5D5CDE] file:text-white hover:file:bg-[#4D4CCE]">
                 </div>
             </div>
             <div class="flex gap-3">
@@ -74,57 +94,53 @@
                 </button>
             </div>
         </div>
-
         <div id="allocation-section" class="hidden no-print">
-            <div class="bg-gray-50 rounded-lg p-6 mb-6">
-                <h2 class="text-2xl font-semibold text-gray-900 mb-4">Allocate Chatters to Groups</h2>
-                <div class="flex border-b border-gray-300 mb-6">
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-6 mb-6">
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Allocate Chatters to Groups</h2>
+                <div class="flex border-b border-gray-300 dark:border-gray-600 mb-6">
                     <button class="shift-tab px-6 py-3 font-semibold text-white bg-[#5D5CDE] rounded-t-lg" data-shift="1">Shift 1</button>
-                    <button class="shift-tab px-6 py-3 font-semibold text-gray-600 hover:bg-gray-200 rounded-t-lg" data-shift="2">Shift 2</button>
-                    <button class="shift-tab px-6 py-3 font-semibold text-gray-600 hover:bg-gray-200 rounded-t-lg" data-shift="3">Shift 3</button>
+                    <button class="shift-tab px-6 py-3 font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg" data-shift="2">Shift 2</button>
+                    <button class="shift-tab px-6 py-3 font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t-lg" data-shift="3">Shift 3</button>
                 </div>
-
                 <div id="shift-1-content" class="shift-content">
                     <div class="mb-6">
                         <div class="flex gap-3 mb-4">
-                            <input type="text" id="shift-1-group-name" placeholder="Group name (e.g., GROUP 1)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                            <input type="text" id="shift-1-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
+                            <input type="text" id="shift-1-group-name" placeholder="Group name (e.g., GROUP 1)" class="flex-1 px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                            <input type="text" id="shift-1-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                             <button onclick="addGroup(1)" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-6 py-2 rounded-md transition duration-200">Add Group</button>
                         </div>
                         <div id="shift-1-groups" class="space-y-4" ondragover="dragOver(event)" ondrop="drop(event, 1)"></div>
                     </div>
-                    <div class="bg-white rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-900 mb-3">Unassigned Chatters</h4>
+                    <div class="bg-white dark:bg-gray-700 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Unassigned Chatters</h4>
                         <div id="shift-1-unassigned" class="flex flex-wrap gap-2"></div>
                     </div>
                 </div>
-
                 <div id="shift-2-content" class="shift-content hidden">
                     <div class="mb-6">
                         <div class="flex gap-3 mb-4">
-                            <input type="text" id="shift-2-group-name" placeholder="Group name (e.g., GROUP 1)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                            <input type="text" id="shift-2-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
+                            <input type="text" id="shift-2-group-name" placeholder="Group name (e.g., GROUP 1)" class="flex-1 px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                            <input type="text" id="shift-2-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                             <button onclick="addGroup(2)" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-6 py-2 rounded-md transition duration-200">Add Group</button>
                         </div>
                         <div id="shift-2-groups" class="space-y-4" ondragover="dragOver(event)" ondrop="drop(event, 2)"></div>
                     </div>
-                    <div class="bg-white rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-900 mb-3">Unassigned Chatters</h4>
+                    <div class="bg-white dark:bg-gray-700 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Unassigned Chatters</h4>
                         <div id="shift-2-unassigned" class="flex flex-wrap gap-2"></div>
                     </div>
                 </div>
-
                 <div id="shift-3-content" class="shift-content hidden">
                     <div class="mb-6">
                         <div class="flex gap-3 mb-4">
-                            <input type="text" id="shift-3-group-name" placeholder="Group name (e.g., GROUP 1)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                            <input type="text" id="shift-3-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
+                            <input type="text" id="shift-3-group-name" placeholder="Group name (e.g., GROUP 1)" class="flex-1 px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                            <input type="text" id="shift-3-manager-name" placeholder="Manager name (e.g., JAO)" class="flex-1 px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
                             <button onclick="addGroup(3)" class="bg-[#5D5CDE] hover:bg-[#4D4CCE] text-white font-semibold px-6 py-2 rounded-md transition duration-200">Add Group</button>
                         </div>
                         <div id="shift-3-groups" class="space-y-4" ondragover="dragOver(event)" ondrop="drop(event, 3)"></div>
                     </div>
-                    <div class="bg-white rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-900 mb-3">Unassigned Chatters</h4>
+                    <div class="bg-white dark:bg-gray-700 rounded-lg p-4">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-3">Unassigned Chatters</h4>
                         <div id="shift-3-unassigned" class="flex flex-wrap gap-2"></div>
                     </div>
                 </div>
@@ -138,10 +154,9 @@
                 </div>
             </div>
         </div>
-
         <div id="results" class="hidden">
             <div class="flex justify-between items-center mb-4 no-print">
-                <h2 class="text-2xl font-semibold text-gray-900">Performance Results</h2>
+                <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">Performance Results</h2>
                 <div class="flex gap-3">
                     <button onclick="showAllocationSection()" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-md transition duration-200 no-print">
                         Edit Allocations
@@ -154,16 +169,29 @@
             <div id="results-container" class="space-y-8">
                 </div>
         </div>
-
         <div id="error-container" class="hidden">
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p class="text-red-800 font-medium">Error</p>
-                <p id="error-message" class="text-red-600 text-sm mt-1"></p>
+            <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                <p class="text-red-800 dark:text-red-200 font-medium">Error</p>
+                <p id="error-message" class="text-red-600 dark:text-red-300 text-sm mt-1"></p>
             </div>
         </div>
     </div>
 
+    <div id="modal-container"></div>
+
     <script>
+        // Dark mode support
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+        
         // Data storage
         const quarterData = {
             q1: null,
@@ -171,15 +199,20 @@
             q3: null,
             q4: null
         };
-        // Allocation data
-        let allChatters = [];
-        let allModels = {};
+        
+        // --- MODIFIED: `shiftAllocations` now stores chatter objects ---
+        // This is needed for the "Manage Models" feature
         const shiftAllocations = {
             1: { groups: [] },
             2: { groups: [] },
             3: { groups: [] }
+            // Example group: { id: 123, name: 'Group 1', manager: 'IAN', chatters: [ { name: 'Dee', hiddenModels: ['Model A'] } ] }
         };
-        let chatterModels = {};
+
+        // Allocation data
+        let allChatters = [];
+        let allModels = {}; // Stores all models for a chatter, e.g., allModels['Dee'] = ['Model A', 'Model B']
+        let chatterModels = {}; // Stores quarterly data for chatter-model pairs
         let selectedChattersForAssignment = [];
         let allocationsLocked = false;
 
@@ -241,20 +274,29 @@
         }
         // Color palette for models
         const modelColors = [
-            { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-900' },
-            { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-900' },
-            { bg: 'bg-purple-50', border: 'border-purple-400', text: 'text-purple-900' },
-            { bg: 'bg-orange-50', border: 'border-orange-400', text: 'text-orange-900' },
-            { bg: 'bg-pink-50', border: 'border-pink-400', text: 'text-pink-900' },
-            { bg: 'bg-teal-50', border: 'border-teal-400', text: 'text-teal-900' },
-            { bg: 'bg-indigo-50', border: 'border-indigo-400', text: 'text-indigo-900' },
-            { bg: 'bg-rose-50', border: 'border-rose-400', text: 'text-rose-900' }
+            { bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-400', text: 'text-blue-900 dark:text-blue-100' },
+            { bg: 'bg-green-50 dark:bg-green-900/20', border: 'border-green-400', text: 'text-green-900 dark:text-green-100' },
+            { bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-400', text: 'text-purple-900 dark:text-purple-100' },
+            { bg: 'bg-orange-50 dark:bg-orange-900/20', border: 'border-orange-400', text: 'text-orange-900 dark:text-orange-100' },
+            { bg: 'bg-pink-50 dark:bg-pink-900/20', border: 'border-pink-400', text: 'text-pink-900 dark:text-pink-100' },
+            { bg: 'bg-teal-50 dark:bg-teal-900/20', border: 'border-teal-400', text: 'text-teal-900 dark:text-teal-100' },
+            { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-400', text: 'text-indigo-900 dark:text-indigo-100' },
+            { bg: 'bg-rose-50 dark:bg-rose-900/20', border: 'border-rose-400', text: 'text-rose-900 dark:text-rose-100' }
         ];
-                
-        // --- Create table HTML (White Mode) ---
-        // --- MODIFIED: modelsPerRow = 1, added hide button, adjusted widths ---
-        function createChatterTable(chatter, modelsData, quarterLabels) {
-            modelsData.sort((a, b) => a.model.localeCompare(b.model));
+
+        // --- MODIFIED: `createChatterTable` now accepts `hiddenModels` ---
+        // Create table HTML
+        function createChatterTable(chatter, modelsData, quarterLabels, hiddenModels = []) {
+            
+            // --- NEW: Filter out hidden models ---
+            const visibleModelsData = modelsData.filter(modelEntry => 
+                !hiddenModels.includes(modelEntry.model)
+            );
+
+            // If all models for this chatter are hidden, don't render anything for them
+            if (visibleModelsData.length === 0) return '';
+
+            visibleModelsData.sort((a, b) => a.model.localeCompare(b.model));
             const metrics = [
                 { label: 'Fans chatted with', key: 'fansChatted' },
                 { label: 'Messages sent', key: 'messagesSent' },
@@ -263,60 +305,39 @@
             ];
             const maxQuarters = 4;
             const allQuarterSlots = ['Q1', 'Q2', 'Q3', 'Q4'];
-            
-            // --- MODIFIED: Set modelsPerRow to 1 ---
-            const modelsPerRow = 1; 
-            
+            const modelsPerRow = 3; // This is the original layout you wanted
             const modelRows = [];
-            for (let i = 0; i < modelsData.length; i += modelsPerRow) {
-                modelRows.push(modelsData.slice(i, i + modelsPerRow));
+            for (let i = 0; i < visibleModelsData.length; i += modelsPerRow) {
+                modelRows.push(visibleModelsData.slice(i, i + modelsPerRow));
             }
             let html = `
-                <div class="bg-white rounded border border-gray-300 mb-2 break-inside-avoid shadow-sm">
-                    <div class="bg-[#5D5CDE] text-white px-3 py-2 flex justify-center items-center relative">
-                        <h4 class="text-lg font-bold text-center">${chatter}</h4>
-                        <span class="text-xs opacity-75 absolute right-3">
-                            ${modelsData.length} model${modelsData.length > 1 ? 's' : ''}
-                        </span>
+                <div class="bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 mb-2 break-inside-avoid shadow-sm">
+                    <div class="bg-[#5D5CDE] text-white px-2 py-1 flex justify-between items-center">
+                        <h4 class="text-xs font-bold">${chatter}</h4>
+                        <span class="text-xs opacity-75">${visibleModelsData.length} model${visibleModelsData.length > 1 ? 's' : ''}</span>
                     </div>
             `;
-            
             modelRows.forEach((rowModels, rowIdx) => {
                 while (rowModels.length < modelsPerRow) {
                     rowModels.push(null);
                 }
-
-                // --- NEW: Add unique ID for model container ---
-                const modelEntry = rowModels[0]; // Since modelsPerRow is 1
-                const modelId = `${chatter.replace(/[^a-z0-9]/gi, '_')}-${modelEntry.model.replace(/[^a-z0-9]/gi, '_')}-${rowIdx}`;
-
                 html += `
-                    <div class="overflow-x-auto" id="model-container-${modelId}">
+                    <div class="overflow-x-auto">
                         <table class="w-full text-xs table-fixed" style="border-collapse: separate; border-spacing: 0;">
-                            <thead class="bg-gray-100">
+                            <thead class="bg-gray-100 dark:bg-gray-700">
                                 <tr>
                 `;
-                
                 rowModels.forEach((modelEntry, idx) => {
                     const colorIdx = (rowIdx * modelsPerRow + idx) % modelColors.length;
                     const color = modelColors[colorIdx];
                     if (modelEntry) {
-                        // --- MODIFIED: Added flex-wrapper and Hide button, changed width to 20% ---
-                        html += `<th rowspan="2" class="px-1 py-1 text-left font-bold text-sm ${color.text} ${color.bg} border-b border-l border-t ${color.border}" style="width: 20%; border-width: 2px; white-space: nowrap;">
-                                    <div class="flex justify-between items-center pr-1">
-                                        <span>${modelEntry.model}</span>
-                                        <button onclick="hideModel('model-container-${modelId}')" class="text-xs font-normal text-white/70 hover:text-white no-print">[Hide]</button>
-                                    </div>
-                                </th>`;
-                        
+                        html += `<th rowspan="2" class="px-1 py-1 text-left font-semibold ${color.text} ${color.bg} border-b border-l border-t ${color.border}" style="width: 9%; border-width: 2px; white-space: nowrap;">${modelEntry.model}</th>`;
                         allQuarterSlots.forEach(q => {
-                            // --- MODIFIED: Changed width to 15% ---
-                            html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-gray-300" style="width: 15%; border-width: 1px; white-space: nowrap;">${q}</th>`;
+                            html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 dark:text-gray-200 ${color.bg} border-b border-t border-gray-300 dark:border-gray-600" style="width: 4.5%; border-width: 1px; white-space: nowrap;">${q}</th>`;
                         });
-                        // --- MODIFIED: Changed width to 20% ---
-                        html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 ${color.bg} border-b border-t border-r ${color.border}" style="width: 20%; border-width: 2px; white-space: nowrap;">Total</th>`;
+                        html += `<th class="px-1 py-1 text-center font-semibold text-gray-700 dark:text-gray-200 ${color.bg} border-b border-t border-r ${color.border}" style="width: 6.5%; border-width: 2px; white-space: nowrap;">Total</th>`;
                     } else {
-                        html += `<th colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50 border-b border-gray-300" style="width: 100%; border-width: 1px;"></th>`;
+                        html += `<th colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600" style="width: 33.33%; border-width: 1px;"></th>`;
                     }
                 });
                 html += `
@@ -324,18 +345,16 @@
                             </thead>
                             <tbody>
                 `;
-                
                 metrics.forEach((metric, metricIdx) => {
                     const isLastMetric = metricIdx === metrics.length - 1;
-                    const rowBg = metricIdx % 2 === 0 ? '' : 'bg-gray-50/50';
+                    const rowBg = metricIdx % 2 === 0 ? '' : 'bg-gray-50/50 dark:bg-gray-800/50';
                     html += `<tr class="${rowBg}">`;
                     rowModels.forEach((modelEntry, idx) => {
                         const colorIdx = (rowIdx * modelsPerRow + idx) % modelColors.length;
                         const color = modelColors[colorIdx];
                         if (modelEntry) {
                             const bottomBorder = isLastMetric ? `border-b ${color.border}` : '';
-                            html += `<td class="px-1 py-1 text-gray-600 ${color.bg} font-medium border-l ${color.border} ${bottomBorder}" style="border-left-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${metric.label}</td>`;
-                            
+                            html += `<td class="px-1 py-1 text-gray-600 dark:text-gray-400 ${color.bg} font-medium border-l ${color.border} ${bottomBorder}" style="border-left-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${metric.label}</td>`;
                             let total = 0;
                             const quarterValues = [];
                             allQuarterSlots.forEach((quarterSlot, slotIdx) => {
@@ -346,7 +365,6 @@
                                 }
                                 quarterValues.push(value);
                             });
-                            
                             allQuarterSlots.forEach((quarterSlot, slotIdx) => {
                                 const value = quarterValues[slotIdx];
                                 total += value;
@@ -366,15 +384,14 @@
                                         }
                                     }
                                 }
-                                html += `<td class="px-1 py-1 text-center text-gray-900 ${color.bg} ${bottomBorder}" style="${isLastMetric ? 'border-bottom-width: 1px;' : ''} white-space: nowrap;">
+                                html += `<td class="px-1 py-1 text-center text-gray-900 dark:text-gray-100 ${color.bg} ${bottomBorder}" style="${isLastMetric ? 'border-bottom-width: 1px;' : ''} white-space: nowrap;">
                                     ${outlineStyle ? `<span style="${outlineStyle}">${displayValue}</span>` : displayValue}
                                 </td>`;
                             });
-                            
                             const displayTotal = metric.isCurrency ? `$${total.toFixed(2)}` : total;
-                            html += `<td class="px-1 py-1 text-center font-bold text-gray-900 ${color.bg} border-r ${color.border} ${bottomBorder}" style="border-right-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTotal}</td>`;
+                            html += `<td class="px-1 py-1 text-center font-bold text-gray-900 dark:text-gray-100 ${color.bg} border-r ${color.border} ${bottomBorder}" style="border-right-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTotal}</td>`;
                         } else {
-                            html += `<td colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50"></td>`;
+                            html += `<td colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50 dark:bg-gray-800"></td>`;
                         }
                     });
                     html += `</tr>`;
@@ -389,23 +406,6 @@
             return html;
         }
 
-        // --- NEW: Hide/Show Model Functions ---
-        function hideModel(elementId) {
-            const el = document.getElementById(elementId);
-            if (el) {
-                el.style.display = 'none';
-            }
-        }
-
-        function showAllModels(groupId) {
-            const groupElement = document.getElementById(groupId);
-            if (!groupElement) return;
-            const hiddenModels = groupElement.querySelectorAll('.overflow-x-auto');
-            hiddenModels.forEach(modelDiv => {
-                modelDiv.style.display = 'block';
-            });
-        }
-        
         // Main processing function
         async function processAllFiles() {
             const errorContainer = document.getElementById('error-container');
@@ -423,11 +423,11 @@
                         quarterData[quarters[i]] = processData(data);
                         quarterLabels.push(`Q${i + 1}`);
                         statusEl.textContent = '✓';
-                        statusEl.className = 'text-xs text-green-600';
+                        statusEl.className = 'text-xs text-green-600 dark:text-green-400';
                     } else if (quarterData[quarters[i]]) {
                         quarterLabels.push(`Q${i + 1}`);
                         statusEl.textContent = '✓';
-                        statusEl.className = 'text-xs text-green-600';
+                        statusEl.className = 'text-xs text-green-600 dark:text-green-400';
                     } else {
                         statusEl.textContent = '';
                     }
@@ -457,7 +457,10 @@
                             });
                         }
                     });
-                    allModels[chatter] = Array.from(models);
+                    
+                    // --- MODIFIED: Store all models for the modal ---
+                    allModels[chatter] = Array.from(models).sort(); 
+                    
                     chatterModels[chatter] = Array.from(models).map(model => {
                         const quarterValues = quarters.map((q, idx) => {
                             if (quarterData[q]) {
@@ -486,7 +489,7 @@
             const statusEl = document.getElementById('allocation-status');
             if (allocationsLocked) {
                 statusEl.textContent = '✓ Allocations Locked';
-                statusEl.className = 'text-sm font-semibold text-green-600';
+                statusEl.className = 'text-sm font-semibold text-green-600 dark:text-green-400';
             } else {
                 statusEl.textContent = '';
             }
@@ -534,9 +537,9 @@
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
             modal.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                    <p class="text-gray-700 mb-4 font-semibold">Are you sure you want to reset all allocations?</p>
-                    <p class="text-gray-600 text-sm mb-4">This will clear all groups and chatter assignments.</p>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <p class="text-gray-700 dark:text-gray-300 mb-4 font-semibold">Are you sure you want to reset all allocations?</p>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">This will clear all groups and chatter assignments.</p>
                     <div class="flex justify-end gap-3">
                         <button class="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 rounded" onclick="this.closest('.fixed').remove()">Cancel</button>
                         <button class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded" onclick="confirmReset(); this.closest('.fixed').remove()">Reset All</button>
@@ -555,48 +558,34 @@
             updateAllocationStatus();
             initializeAllocation();
         }
-
-        // --- Chatter Search & Assignment ---
+        
+        // --- MODIFIED: `renderUnassignedChatters` checks `c.name` ---
         // Render unassigned chatters
         function renderUnassignedChatters(shift) {
             const container = document.getElementById(`shift-${shift}-unassigned`);
             const assignedChatters = new Set();
             shiftAllocations[shift].groups.forEach(group => {
-                group.chatters.forEach(c => assignedChatters.add(c));
+                group.chatters.forEach(c => assignedChatters.add(c.name)); // Check by name
             });
-            
             const unassigned = allChatters.filter(c => !assignedChatters.has(c));
-            const searchInput = document.getElementById(`chatter-search-input-${shift}`);
-            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
-            const filteredUnassigned = unassigned.filter(c => 
-                c.toLowerCase().includes(searchTerm)
-            );
-
-            if (filteredUnassigned.length === 0) {
-                 if (searchTerm) {
-                    container.innerHTML = `<p class="text-gray-500 text-sm">No chatters found matching "${searchTerm}"</p>`;
-                 } else {
-                    container.innerHTML = '<p class="text-gray-500 text-sm">All chatters have been assigned</p>';
-                 }
+            if (unassigned.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 dark:text-gray-400 text-sm">All chatters have been assigned</p>';
                 return;
             }
-
             const isAssignmentMode = currentAssignmentShift === shift;
-                        
-            container.innerHTML = filteredUnassigned.map(chatter => {
+            container.innerHTML = unassigned.map(chatter => {
                 const isSelected = selectedChattersForAssignment.includes(chatter);
                 let bgClass, hoverClass;
                 if (isAssignmentMode) {
-                    bgClass = isSelected ? 'bg-[#5D5CDE]' : 'bg-green-200';
-                    hoverClass = isSelected ? 'hover:bg-[#4D4CCE]' : 'hover:bg-green-300';
+                    bgClass = isSelected ? 'bg-[#5D5CDE]' : 'bg-green-200 dark:bg-green-700';
+                    hoverClass = isSelected ? 'hover:bg-[#4D4CCE]' : 'hover:bg-green-300 dark:hover:bg-green-600';
                 } else {
-                    bgClass = 'bg-gray-200';
-                    hoverClass = 'hover:bg-gray-300';
+                    bgClass = 'bg-gray-200 dark:bg-gray-600';
+                    hoverClass = 'hover:bg-gray-300 dark:hover:bg-gray-500';
                 }
-                const textColor = isSelected ? 'text-white' : 'text-gray-800';
+                const textColor = isSelected ? 'text-white' : 'text-gray-800 dark:text-gray-200';
                 return `<span class="chatter-tag ${bgClass} ${textColor} px-3 py-2 rounded-md text-sm cursor-pointer ${hoverClass}" data-chatter="${chatter}">${chatter}${isSelected ? ' ✓' : ''}</span>`;
             }).join('');
-            
             if (isAssignmentMode && currentAssignmentGroupId) {
                 container.querySelectorAll('.chatter-tag').forEach(tag => {
                     tag.onclick = () => {
@@ -627,7 +616,7 @@
                 id: Date.now(),
                 name: groupName,
                 manager: managerName,
-                chatters: []
+                chatters: [] // Will hold objects { name: 'Chatter', hiddenModels: [] }
             };
             shiftAllocations[shift].groups.push(group);
             groupNameInput.value = '';
@@ -635,45 +624,49 @@
             renderGroups(shift);
         }
         
-        // --- MODIFIED: Added draggable, edit form, and edit buttons ---
+        // --- MODIFIED: `renderGroups` now includes drag, edit, and modal features ---
+        // Render groups
         function renderGroups(shift) {
             const container = document.getElementById(`shift-${shift}-groups`);
             container.innerHTML = shiftAllocations[shift].groups.map(group => {
                 const isActive = currentAssignmentGroupId === group.id && currentAssignmentShift === shift;
                 const borderClass = isActive ? 'border-green-500 border-4 shadow-lg' : 'border-[#5D5CDE] border-2';
-                
                 return `
                 <div id="group-draggable-${shift}-${group.id}" 
-                     class="bg-white rounded-lg p-4 ${borderClass} cursor-move" 
+                     class="bg-white dark:bg-gray-700 rounded-lg p-4 ${borderClass} cursor-move" 
                      draggable="true" 
                      ondragstart="dragStart(event, ${shift}, ${group.id})" 
                      ondragend="dragEnd(event)">
+                    
                     <div class="flex justify-between items-center mb-3">
-                        
                         <div class="flex-1 overflow-hidden">
                             <div id="group-display-${shift}-${group.id}">
-                                <h4 class="font-bold text-gray-900 truncate">${group.name} ${isActive ? '← ACTIVE' : ''}</h4>
-                                <p class="text-sm text-gray-600">Manager: ${group.manager}</p>
+                                <h4 class="font-bold text-gray-900 dark:text-white truncate">${group.name} ${isActive ? '← ACTIVE' : ''}</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Manager: ${group.manager}</p>
                             </div>
                             <div id="group-edit-${shift}-${group.id}" class="hidden space-y-2 my-2">
-                                <input type="text" value="${group.name}" class="w-full px-2 py-1 text-base border border-gray-300 rounded bg-white text-gray-900" id="edit-group-name-${shift}-${group.id}" placeholder="Group name">
-                                <input type="text" value="${group.manager}" class="w-full px-2 py-1 text-base border border-gray-300 rounded bg-white text-gray-900" id="edit-manager-name-${shift}-${group.id}" placeholder="Manager name">
+                                <input type="text" value="${group.name}" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" id="edit-group-name-${shift}-${group.id}" placeholder="Group name">
+                                <input type="text" value="${group.manager}" class="w-full px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" id="edit-manager-name-${shift}-${group.id}" placeholder="Manager name">
                             </div>
                         </div>
-
+                        
                         <div class="flex gap-2 flex-shrink-0 ml-2" id="group-buttons-${shift}-${group.id}">
                             <button onclick="toggleGroupEdit(${shift}, ${group.id})" class="bg-yellow-500 hover:bg-yellow-600 text-white text-sm px-3 py-1 rounded-md">Edit</button>
                             <button onclick="assignChatterToGroup(${shift}, ${group.id})" class="bg-green-500 hover:bg-green-600 text-white text-sm px-3 py-1 rounded-md">+ Assign</button>
                             <button onclick="removeGroup(${shift}, ${group.id})" class="bg-red-500 hover:bg-red-600 text-white text-sm px-3 py-1 rounded-md">Remove</button>
                         </div>
                     </div>
+                    
                     <div class="flex flex-wrap gap-2" id="shift-${shift}-group-${group.id}-chatters">
-                        ${group.chatters.length > 0 ? group.chatters.map(chatter =>
+                        ${group.chatters.length > 0 ? group.chatters.map(chatterObj =>
+                            // MODIFIED: Chatter tag is now a button for the modal
                             `<span class="bg-[#5D5CDE] text-white px-3 py-1 rounded-md text-sm flex items-center gap-2">
-                                ${chatter}
-                                <button onclick="removeChatterFromGroup(${shift}, ${group.id}, '${chatter}')" class="hover:text-red-300">×</button>
+                                <button onclick="openManageModelsModal(${shift}, ${group.id}, '${chatterObj.name}')" class="hover:underline">
+                                    ${chatterObj.name} ${chatterObj.hiddenModels.length > 0 ? '<span class="text-xs text-yellow-300 ml-1">*</span>' : ''}
+                                </button>
+                                <button onclick="removeChatterFromGroup(${shift}, ${group.id}, '${chatterObj.name}')" class="hover:text-red-300">×</button>
                             </span>`
-                        ).join('') : '<p class="text-gray-500 text-sm italic">No chatters assigned yet</p>'}
+                        ).join('') : '<p class="text-gray-500 dark:text-gray-400 text-sm italic">No chatters assigned yet</p>'}
                     </div>
                 </div>
             `;
@@ -728,7 +721,6 @@
             updateAssignmentBanner(shift);
             renderUnassignedChatters(shift);
         }
-        
         function updateAssignmentBanner(shift) {
             const container = document.getElementById(`shift-${shift}-unassigned`);
             const existingBanner = document.getElementById('assignment-banner');
@@ -737,18 +729,18 @@
             if (!group) return;
             const assignedChatters = new Set();
             shiftAllocations[shift].groups.forEach(g => {
-                g.chatters.forEach(c => assignedChatters.add(c));
+                g.chatters.forEach(c => assignedChatters.add(c.name));
             });
             const unassigned = allChatters.filter(c => !assignedChatters.has(c));
             const selectedCount = selectedChattersForAssignment.length;
             const banner = document.createElement('div');
             banner.id = 'assignment-banner';
-            banner.className = 'bg-green-100 border-2 border-green-500 rounded-lg p-3 mb-3 space-y-3';
+            banner.className = 'bg-green-100 dark:bg-green-900 border-2 border-green-500 rounded-lg p-3 mb-3';
             banner.innerHTML = `
                 <div class="flex justify-between items-center gap-4">
                     <div>
-                        <p class="text-green-800 font-semibold">Assigning to "${group.name}"</p>
-                        <p class="text-green-700 text-sm mt-1">Click chatters below to select (${selectedCount} selected)</p>
+                        <p class="text-green-800 dark:text-green-200 font-semibold">Assigning to "${group.name}"</p>
+                        <p class="text-green-700 dark:text-green-300 text-sm mt-1">Click chatters below to select (${selectedCount} selected)</p>
                     </div>
                     <div class="flex gap-2">
                         ${unassigned.length > 0 ? `<button onclick="selectAllUnassigned(${shift})" class="bg-blue-500 hover:bg-blue-600 text-white text-sm px-3 py-2 rounded-md">Select All (${unassigned.length})</button>` : ''}
@@ -757,20 +749,13 @@
                         <button onclick="cancelAssignment(${shift})" class="bg-gray-500 hover:bg-gray-600 text-white font-semibold px-4 py-2 rounded-md">Cancel</button>
                     </div>
                 </div>
-                <div>
-                    <input type="text" id="chatter-search-input-${shift}"
-                            oninput="renderUnassignedChatters(${shift})"
-                            placeholder="Type to search for a chatter..."
-                            class="w-full px-4 py-2 text-base border border-gray-300 rounded-md bg-white text-gray-900">
-                </div>
             `;
             container.parentElement.insertBefore(banner, container);
-            document.getElementById(`chatter-search-input-${shift}`).focus();
         }
         function selectAllUnassigned(shift) {
             const assignedChatters = new Set();
             shiftAllocations[shift].groups.forEach(g => {
-                g.chatters.forEach(c => assignedChatters.add(c));
+                g.chatters.forEach(c => assignedChatters.add(c.name));
             });
             const unassigned = allChatters.filter(c => !assignedChatters.has(c));
             selectedChattersForAssignment = [...unassigned];
@@ -782,12 +767,15 @@
             renderUnassignedChatters(shift);
             updateAssignmentBanner(shift);
         }
+        
+        // --- MODIFIED: `confirmAssignment` adds objects, not strings ---
         function confirmAssignment(shift) {
             const group = shiftAllocations[shift].groups.find(g => g.id === currentAssignmentGroupId);
             if (group && selectedChattersForAssignment.length > 0) {
-                selectedChattersForAssignment.forEach(chatter => {
-                    if (!group.chatters.includes(chatter)) {
-                        group.chatters.push(chatter);
+                selectedChattersForAssignment.forEach(chatterName => {
+                    // Check if chatter (by name) is already in the group
+                    if (!group.chatters.find(c => c.name === chatterName)) {
+                        group.chatters.push({ name: chatterName, hiddenModels: [] }); // Add as object
                     }
                 });
             }
@@ -808,11 +796,11 @@
             renderUnassignedChatters(shift);
         }
         
-        // Remove chatter from group
-        function removeChatterFromGroup(shift, groupId, chatter) {
+        // --- MODIFIED: `removeChatterFromGroup` filters objects by name ---
+        function removeChatterFromGroup(shift, groupId, chatterName) {
             const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
             if (group) {
-                group.chatters = group.chatters.filter(c => c !== chatter);
+                group.chatters = group.chatters.filter(c => c.name !== chatterName);
                 renderGroups(shift);
             }
         }
@@ -829,10 +817,10 @@
                 const shift = this.dataset.shift;
                 document.querySelectorAll('.shift-tab').forEach(t => {
                     t.classList.remove('bg-[#5D5CDE]', 'text-white');
-                    t.classList.add('text-gray-600');
+                    t.classList.add('text-gray-600', 'dark:text-gray-400');
                 });
                 this.classList.add('bg-[#5D5CDE]', 'text-white');
-                this.classList.remove('text-gray-600');
+                this.classList.remove('text-gray-600', 'dark:text-gray-400');
                 document.querySelectorAll('.shift-content').forEach(c => c.classList.add('hidden'));
                 document.getElementById(`shift-${shift}-content`).classList.remove('hidden');
             });
@@ -902,8 +890,84 @@
             renderGroups(targetShift); // Re-render to show new order
         }
         
-        // --- Generate Report ---
-        // --- MODIFIED: Added "Show Hidden" button ---
+        // --- NEW: Modal Functions ---
+        function openManageModelsModal(shift, groupId, chatterName) {
+            const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
+            if (!group) return;
+            const chatterObj = group.chatters.find(c => c.name === chatterName);
+            if (!chatterObj) return;
+
+            const modelsForChatter = allModels[chatterName] || [];
+            const hiddenModelsSet = new Set(chatterObj.hiddenModels);
+
+            let checkboxesHTML = '';
+            if (modelsForChatter.length > 0) {
+                checkboxesHTML = modelsForChatter.map(model => {
+                    const isChecked = !hiddenModelsSet.has(model);
+                    return `
+                        <label class="flex items-center space-x-3 p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <input type="checkbox" name="model-toggle" value="${model}" 
+                                   class="form-checkbox h-5 w-5 text-[#5D5CDE] rounded" 
+                                   ${isChecked ? 'checked' : ''}>
+                            <span class="text-gray-800 dark:text-gray-200">${model}</span>
+                        </label>
+                    `;
+                }).join('');
+            } else {
+                checkboxesHTML = '<p class="text-gray-600 dark:text-gray-400">No models found for this chatter.</p>';
+            }
+
+            const modalHTML = `
+                <div id="manage-models-modal-backdrop" onclick="closeManageModelsModal()">
+                    <div id="manage-models-modal" onclick="event.stopPropagation()">
+                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Manage Models for ${chatterName}</h3>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Un-check models to hide them from the final report.</p>
+                        
+                        <div class="space-y-2 max-h-60 overflow-y-auto mb-6 p-2 border rounded-md border-gray-300 dark:border-gray-600">
+                            ${checkboxesHTML}
+                        </div>
+
+                        <div class="flex justify-end gap-3">
+                            <button type="button" onclick="closeManageModelsModal()" 
+                                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">
+                                Cancel
+                            </button>
+                            <button type="button" onclick="saveModelPreferences(${shift}, ${groupId}, '${chatterName}')" 
+                                    class="px-4 py-2 bg-[#5D5CDE] text-white rounded-md hover:bg-[#4D4CCE]">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-container').innerHTML = modalHTML;
+        }
+
+        function closeManageModelsModal() {
+            document.getElementById('modal-container').innerHTML = '';
+        }
+
+        function saveModelPreferences(shift, groupId, chatterName) {
+            const group = shiftAllocations[shift].groups.find(g => g.id === groupId);
+            if (!group) return;
+            const chatterObj = group.chatters.find(c => c.name === chatterName);
+            if (!chatterObj) return;
+
+            const newHiddenModels = [];
+            document.querySelectorAll('#manage-models-modal input[name="model-toggle"]').forEach(checkbox => {
+                if (!checkbox.checked) {
+                    newHiddenModels.push(checkbox.value);
+                }
+            });
+
+            chatterObj.hiddenModels = newHiddenModels;
+            closeManageModelsModal();
+            renderGroups(shift); // Re-render to show asterisk if needed
+        }
+
+        // --- ⬇⬇⬇ MODIFIED SECTION ⬇⬇⬇ ---
+        // --- MODIFIED: `generateReport` passes `hiddenModels` ---
+        // Generate report
         function generateReport() {
             const resultsContainer = document.getElementById('results-container');
             const results = document.getElementById('results');
@@ -911,78 +975,49 @@
             resultsContainer.innerHTML = '';
             const quarters = ['q1', 'q2', 'q3', 'q4'];
             const quarterLabels = quarters.map((q, i) => quarterData[q] ? `Q${i + 1}` : null).filter(q => q);
-            
+
             for (let shift = 1; shift <= 3; shift++) {
                 if (shiftAllocations[shift].groups.length === 0) continue;
-                
                 let shiftHTML = `
                     <div class="page-break-after mb-6">
-                        <h2 class="text-xl font-bold text-gray-900 mb-3 pb-1 border-b-2 border-[#5D5CDE]">Shift ${shift}</h2>
+                        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-3 pb-1 border-b-2 border-[#5D5CDE]">Shift ${shift}</h2>
                 `;
-                
-                // --- Use the order from shiftAllocations, which is updated by drag-drop ---
+                // --- MODIFIED: Use the order from drag-and-drop ---
                 shiftAllocations[shift].groups.forEach(group => {
                     const groupReportId = `group-report-${shift}-${group.id}`;
-                    const safeFilename = `${group.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`; 
-                    
+                    const safeFilename = `${group.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png`;
+
                     shiftHTML += `
-                        <div id="${groupReportId}" class="mb-4 p-3 bg-gray-50 rounded border-8 border-black">
-                            <div class="mb-2 pb-1 border-b border-gray-300 flex justify-between items-center">
-                                <h3 class="text-lg font-bold text-[#5D5CDE] w-1/3">
-                                    ${group.name}
-                                </h3>
-                                <div class="w-1/3 text-center">
-                                    <span class="text-xl font-semibold text-gray-700">
-                                        Manager: ${group.manager}
-                                    </span>
+                        <div id="${groupReportId}" class="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded border-2 border-[#5D5CDE]">
+                            
+                            <div class="mb-2 pb-1 border-b border-gray-300 dark:border-gray-600 flex justify-between items-center">
+                                <div>
+                                    <h3 class="text-base font-bold text-[#5D5CDE] inline">${group.name}</h3>
+                                    <span class="text-sm text-gray-600 dark:text-gray-400"> - Manager: ${group.manager}</span>
                                 </div>
-                                <div class="flex gap-2 no-print w-1/3 justify-end">
-                                    <button onclick="showAllModels('${groupReportId}')" class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Show Hidden
-                                    </button>
-                                    <button onclick="downloadGroupImage(this, '${groupReportId}', '${safeFilename}-full.png')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Download All
+                                <div class="flex gap-2 no-print">
+                                    <button onclick="downloadGroupImage(this, '${groupReportId}', '${safeFilename}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
+                                        Download
                                     </button>
                                     <button onclick="copyGroupImage(this, '${groupReportId}')" class="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Copy All
+                                        Copy
                                     </button>
                                 </div>
                             </div>
+
                             <div class="grid grid-cols-1 gap-2">
                     `;
-                                        
-                    const chattersPerSection = 5;
-                    let chatterBuffer = '';
-                                         
-                    group.chatters.forEach((chatter, chatterIndex) => {
-                        if (chatterModels[chatter]) {
-                            chatterBuffer += createChatterTable(chatter, chatterModels[chatter], quarterLabels);
-                        }
-
-                        if ((chatterIndex + 1) % chattersPerSection === 0 || chatterIndex === group.chatters.length - 1) {
-                            const sectionIndex = Math.floor(chatterIndex / chattersPerSection);
-                            const sectionId = `${groupReportId}-section-${sectionIndex}`;
-                            const sectionFilename = `${safeFilename}-section${sectionIndex + 1}.png`;
-                                                        
-                            shiftHTML += `<div id="${sectionId}" class="mb-4 p-3 bg-gray-100 rounded border border-gray-300">`;
-                            shiftHTML += chatterBuffer;
-                                                         
-                            shiftHTML += `
-                                <div class="flex gap-2 justify-end no-print mt-2 -mr-1 -mb-1">
-                                    <button onclick="downloadGroupImage(this, '${sectionId}', '${sectionFilename}')" class="bg-blue-500 hover:bg-blue-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Download Section
-                                    </button>
-                                    <button onclick="copyGroupImage(this, '${sectionId}')" class="bg-green-500 hover:bg-green-600 text-white text-xs font-semibold py-1 px-2 rounded">
-                                        Copy Section
-                                    </button>
-                                </div>
-                            `;
-                                                        
-                            shiftHTML += `</div>`; // Close section div
-                            chatterBuffer = ''; // Reset buffer
+                    // --- MODIFIED: Loop through chatter objects and pass hiddenModels ---
+                    group.chatters.forEach(chatterObj => {
+                        if (chatterModels[chatterObj.name]) {
+                            shiftHTML += createChatterTable(
+                                chatterObj.name, 
+                                chatterModels[chatterObj.name], 
+                                quarterLabels, 
+                                chatterObj.hiddenModels // Pass the hidden models array
+                            );
                         }
                     });
-                                        
                     shiftHTML += `
                             </div>
                         </div>
@@ -991,40 +1026,36 @@
                 shiftHTML += `</div>`;
                 resultsContainer.innerHTML += shiftHTML;
             }
-            
             allocationSection.classList.add('hidden');
             results.classList.remove('hidden');
         }
-                
-        // --- Image Generation & Utility Functions ---
+
+        
+        // --- NEW CORE BLOB GENERATOR FUNCTION ---
+        // This function does the hard work of creating the image
+        // and returns a Promise that resolves with a Blob.
         function generateGroupBlob(elementId) {
             return new Promise((resolve, reject) => {
                 const element = document.getElementById(elementId);
                 const originalBg = element.style.backgroundColor;
-                const originalFontSize = element.style.fontSize;
-                element.style.backgroundColor = '#ffffff'; // Force white background
-                element.style.fontSize = '14pt'; // <-- INCREASED FONT SIZE
                 
-                const buttonsToHide = element.querySelectorAll('.no-print');
-                buttonsToHide.forEach(btn => btn.style.display = 'none');
-                
+                // --- MODIFIED: Check for dark mode to set background ---
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                // Force white for light mode, dark gray for dark mode for the capture
+                element.style.backgroundColor = isDarkMode ? '#1f2937' : '#ffffff';
+
                 html2canvas(element, {
-                    scale: 3, // Higher resolution
+                    scale: 2,
                     useCORS: true,
-                    window: window, 
-                     onclone: (clonedDoc) => {
-                        const clonedElement = clonedDoc.getElementById(elementId);
-                        clonedElement.style.backgroundColor = originalBg;
-                        clonedElement.style.fontSize = '14pt';
-                        clonedDoc.querySelectorAll('.no-print').forEach(btn => btn.style.display = 'none');
+                    window: window, // <-- IMPORTANT FIX for Poe
+                    onclone: (clonedDoc) => {
+                        // Ensure the clone also has the correct background
+                        clonedDoc.getElementById(elementId).style.backgroundColor = isDarkMode ? '#1f2937' : '#ffffff';
                     }
                 }).then(canvas => {
-                    // --- RESTORE ---
+                    // Restore background *before* resolving
                     element.style.backgroundColor = originalBg;
-                    element.style.fontSize = originalFontSize; // <-- RESTORE FONT
-                    buttonsToHide.forEach(btn => btn.style.display = '');
-                    // --- END RESTORE ---
-                    
+                    // Convert canvas to Blob
                     canvas.toBlob(blob => {
                         if (blob) {
                             resolve(blob);
@@ -1033,16 +1064,14 @@
                         }
                     }, 'image/png');
                 }).catch(err => {
-                    // --- RESTORE ON ERROR ---
+                    // Restore background on error
                     element.style.backgroundColor = originalBg;
-                    element.style.fontSize = originalFontSize; // <-- RESTORE FONT
-                    buttonsToHide.forEach(btn => btn.style.display = '');
-                    // --- END RESTORE ---
                     reject(err);
                 });
             });
         }
-        
+
+        // --- UPDATED DOWNLOAD FUNCTION ---
         async function downloadGroupImage(buttonEl, elementId, filename) {
             const originalText = buttonEl.innerHTML;
             buttonEl.innerHTML = '...';
@@ -1050,24 +1079,33 @@
 
             try {
                 const blob = await generateGroupBlob(elementId);
+                
+                // Create a temporary link
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
                 link.download = filename;
+                
+                // Append, click, and remove
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
+                
+                // Revoke the object URL to free up memory
                 URL.revokeObjectURL(link.href);
 
             } catch (err) {
                 console.error('Download error:', err);
                 showCustomAlert('Could not download image. See console for details.');
             } finally {
+                // Restore button
                 buttonEl.innerHTML = originalText;
                 buttonEl.disabled = false;
             }
         }
-        
+
+        // --- NEW COPY TO CLIPBOARD FUNCTION ---
         async function copyGroupImage(buttonEl, elementId) {
+            // Check for clipboard permissions
             if (!navigator.clipboard || !navigator.clipboard.write) {
                 showCustomAlert('Clipboard API not supported or blocked in this browser.');
                 return;
@@ -1079,30 +1117,39 @@
 
             try {
                 const blob = await generateGroupBlob(elementId);
+                
+                // Create a clipboard item
                 const item = new ClipboardItem({ 'image/png': blob });
+                
+                // Write to clipboard
                 await navigator.clipboard.write([item]);
+                
                 showCustomAlert('Image copied to clipboard!');
 
             } catch (err) {
                 console.error('Copy error:', err);
                 showCustomAlert('Could not copy image. See console for details.');
             } finally {
+                // Restore button
                 buttonEl.innerHTML = originalText;
                 buttonEl.disabled = false;
             }
         }
-        
+
+        // --- ⬆⬆⬆ END OF MODIFIED SECTION ⬆⬆⬆ ---
+
+        // Show allocation section
         function showAllocationSection() {
             document.getElementById('allocation-section').classList.remove('hidden');
             document.getElementById('results').classList.add('hidden');
         }
-        
+        // Custom modal function
         function showCustomAlert(message) {
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
             modal.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                    <p class="text-gray-700 mb-4">${message}</p>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <p class="text-gray-700 dark:text-gray-300 mb-4">${message}</p>
                     <div class="flex justify-end">
                         <button class="px-4 py-2 bg-[#5D5CDE] text-white hover:bg-[#4D4CCE] rounded" onclick="this.closest('.fixed').remove()">OK</button>
                     </div>
@@ -1110,14 +1157,14 @@
             `;
             document.body.appendChild(modal);
         }
-        
+        // Clear all function
         function clearAll() {
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
             modal.innerHTML = `
-                <div class="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
-                    <p class="text-gray-700 mb-4 font-semibold">Are you sure you want to clear everything?</p>
-                    <p class="text-gray-600 text-sm mb-4">This will remove all uploaded files and reset all allocations.</p>
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full mx-4">
+                    <p class="text-gray-700 dark:text-gray-300 mb-4 font-semibold">Are you sure you want to clear everything?</p>
+                    <p class="text-gray-600 dark:text-gray-400 text-sm mb-4">This will remove all uploaded files and reset all allocations.</p>
                     <div class="flex justify-end gap-3">
                         <button class="px-4 py-2 bg-gray-500 text-white hover:bg-gray-600 rounded" onclick="this.closest('.fixed').remove()">Cancel</button>
                         <button class="px-4 py-2 bg-red-500 text-white hover:bg-red-600 rounded" onclick="confirmClearAll(); this.closest('.fixed').remove()">Clear All</button>
@@ -1153,17 +1200,18 @@
             document.getElementById('error-container').classList.add('hidden');
             updateAllocationStatus();
         }
-                
+        
+        // --- MODIFIED: Added DOMContentLoaded and unload warning ---
         document.addEventListener('DOMContentLoaded', (event) => {
-            // Main file processing listener
+            // Event listeners
             document.getElementById('process-btn').addEventListener('click', processAllFiles);
-            
-            // --- NEW: Add unload warning ---
+
+            // NEW: Add unload warning
             window.addEventListener('beforeunload', function (e) {
                 // Check if any files are loaded or allocations made
                 if (quarterData.q1 || quarterData.q2 || quarterData.q3 || quarterData.q4 || allChatters.length > 0) {
-                    e.preventDefault();
-                    e.returnValue = 'Are you sure you want to leave? All uploaded data will be lost.';
+                    e.preventDefault(); // Required for most browsers
+                    e.returnValue = 'Are you sure you want to leave? All uploaded data will be lost.'; // Required for legacy browsers
                 }
             });
         });
