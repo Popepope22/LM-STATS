@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,7 +18,7 @@
         @media screen {
             .page-break-after { margin-bottom: 2rem; }
         }
-        /* This is hidden by default */
+        /* This is hidden by default and no longer used */
         .screenshot-only {
             display: none;
         }
@@ -243,8 +244,9 @@
             { bg: 'bg-indigo-50', border: 'border-indigo-400', text: 'text-indigo-900' },
             { bg: 'bg-rose-50', border: 'border-rose-400', text: 'text-rose-900' }
         ];
+        
         // ==========================================================
-        //  UPDATED createChatterTable FUNCTION (WITH CENTERED CIRCLES)
+        //  MODIFIED createChatterTable FUNCTION (WITH 32px CIRCLES)
         // ==========================================================
         function createChatterTable(chatter, modelsData, quarterLabels) {
             modelsData.sort((a, b) => a.model.localeCompare(b.model));
@@ -328,10 +330,12 @@
                                     const currentQuarterIdx = quarterLabels.indexOf(quarterSlot);
                                     if (prevQuarterIdx >= 0 && currentQuarterIdx >= 0) {
                                         const prevValue = quarterValues[slotIdx - 1];
+                                        
                                         // ===========================================
-                                        //   FIX FOR CENTERING CIRCLES
+                                        //   FIX FOR DEFORMING CIRCLES (NOW 32px)
                                         // ===========================================
-                                        const baseCircleStyle = 'display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-weight: bold;';
+                                        const baseCircleStyle = 'display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; box-sizing: border-box;';
+                                        
                                         if (value < prevValue) {
                                             outlineStyle = `${baseCircleStyle} border: 2px solid #EF4444; color: #EF4444;`; // Red
                                         } else if (value === prevValue) {
@@ -344,12 +348,17 @@
                                         // ===========================================
                                     }
                                 }
-                                html += `<td class="px-1 py-1 text-center text-gray-900 ${color.bg} ${bottomBorder}" style="${isLastMetric ? 'border-bottom-width: 1px;' : ''} white-space: nowrap;">
+                                
+                                // ===========================================
+                                //   *** THE FINAL FIX IS HERE ***
+                                // ===========================================
+                                // Added `vertical-align: middle;` to the style
+                                html += `<td class="px-1 py-1 text-center text-gray-900 ${color.bg} ${bottomBorder}" style="${isLastMetric ? 'border-bottom-width: 1px;' : ''} white-space: nowrap; vertical-align: middle;">
                                     ${outlineStyle ? `<span style="${outlineStyle}">${displayValue}</span>` : displayValue}
                                 </td>`;
                             });
                             const displayTotal = metric.isCurrency ? `$${total.toFixed(2)}` : total;
-                            html += `<td class="px-1 py-1 text-center font-bold text-gray-900 ${color.bg} border-r ${color.border} ${bottomBorder}" style="border-right-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTotal}</td>`;
+                            html += `<td class="px-1 py-1 text-center font-bold text-gray-900 ${color.bg} border-r ${color.border} ${bottomBorder}" style="border-right-width: 2px; ${isLastMetric ? 'border-bottom-width: 2px;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${displayTotal}</td>`;
                         } else {
                             html += `<td colspan="${maxQuarters + 2}" class="px-1 py-1 bg-gray-50"></td>`;
                         }
@@ -830,11 +839,8 @@
                 document.getElementById(`shift-${shift}-content`).classList.remove('hidden');
             });
         });
-        // --- ⬇⬇⬇ MODIFIED SECTION (SECTION SPLITTING & BORDER) ⬇⬇⬇ ---
-        // ==========================================================
-        //  UPDATED generateReport FUNCTION
-        //  (Centered Overlay + 5 chatters per section)
-        // ==========================================================
+        
+        // --- ⬇⬇⬇ MODIFIED SECTION ⬇⬇⬇ ---
         function generateReport() {
             const resultsContainer = document.getElementById('results-container');
             const results = document.getElementById('results');
@@ -876,9 +882,8 @@
                             </div>
                             <div class="grid grid-cols-1 gap-2">
                     `;
-                    const chattersPerSection = 5; // <-- CHANGED BACK TO 5
+                    const chattersPerSection = 5;
                     let chatterBuffer = '';
-                    // --- MODIFIED ---
                     // Added model visibility filtering
                     group.chatters.forEach((chatter, chatterIndex) => {
                         if (chatterModels[chatter]) {
@@ -898,24 +903,10 @@
                             const sectionNumber = sectionIndex + 1; // For display
                             const sectionId = `${groupReportId}-section-${sectionIndex}`;
                             const sectionFilename = `${safeFilename}_${safeManagerName}_section${sectionNumber}.png`;
+                            
+                            // --- OVERLAY DIV REMOVED ---
                             shiftHTML += `<div id="${sectionId}" class="mb-4 p-3 bg-gray-100 rounded border border-gray-300">`;
                             
-                            // ===========================================
-                            //   MODIFIED OVERLAY BANNER (MANAGER REMOVED)
-                            // ===========================================
-                            shiftHTML += `
-                                <div class="screenshot-only"
-                                      style="padding: 12px;
-                                             background-color: rgba(0, 0, 0, 0.75);
-                                             border-bottom: 2px solid #5D5CDE;
-                                             margin-bottom: 12px;
-                                             border-radius: 6px;
-                                            text-align: center;">
-                                     <h2 style="font-size: 24pt; color: white; font-weight: 800; line-height: 1.1;">${group.name}</h2>
-                                </div>
-                            `;
-                            // ===========================================
-
                             shiftHTML += chatterBuffer; // Add chatter tables
                             shiftHTML += `
                                 <div class="flex gap-2 justify-end no-print mt-2 -mr-1 -mb-1">
@@ -942,9 +933,7 @@
             allocationSection.classList.add('hidden');
             results.classList.remove('hidden');
         }
-        // ==========================================================
-        //  UPDATED generateGroupBlob FUNCTION (scale 4, 18pt FONT)
-        // ==========================================================
+        
         function generateGroupBlob(elementId) {
             return new Promise((resolve, reject) => {
                 const element = document.getElementById(elementId);
@@ -962,13 +951,9 @@
                         const clonedElement = clonedDoc.getElementById(elementId);
                         clonedElement.style.backgroundColor = originalBg;
                         clonedElement.style.fontSize = '18pt'; // <-- CHANGED TO 18pt
-                        // ===========================================
-                        //   NEW SCRIPT TO SHOW OVERLAY
-                        // ===========================================
-                        clonedDoc.querySelectorAll('.screenshot-only').forEach(overlay => {
-                            overlay.style.display = 'block';
-                        });
-                        // ===========================================
+                        
+                        // --- OVERLAY SCRIPT REMOVED ---
+
                         // Hide buttons in the clone as well
                         clonedDoc.querySelectorAll('.no-print').forEach(btn => btn.style.display = 'none');
                     }
@@ -995,9 +980,7 @@
                 });
             });
         }
-        // ==========================================================
-        //  NEW FUNCTION TO DOWNLOAD ALL SECTIONS
-        // ==========================================================
+        
         async function downloadAllSections(buttonEl, groupReportId, groupName, managerName) {
             const originalText = buttonEl.innerHTML;
             buttonEl.disabled = true;
@@ -1035,7 +1018,7 @@
                 buttonEl.disabled = false;
             }
         }
-        // --- DOWNLOAD FUNCTION (FOR SINGLE SECTIONS) ---
+        
         async function downloadGroupImage(buttonEl, elementId, filename) {
             const originalText = buttonEl.innerHTML;
             buttonEl.innerHTML = '...';
@@ -1057,7 +1040,7 @@
                 buttonEl.disabled = false;
             }
         }
-        // --- COPY TO CLIPBOARD FUNCTION ---
+        
         async function copyGroupImage(buttonEl, elementId) {
             if (!navigator.clipboard || !navigator.clipboard.write) {
                 showCustomAlert('Clipboard API not supported or blocked in this browser.');
@@ -1147,6 +1130,15 @@
         document.addEventListener('DOMContentLoaded', (event) => {
             // Main file processing listener
             document.getElementById('process-btn').addEventListener('click', processAllFiles);
+            
+            // --- NEW: Add unload warning ---
+            window.addEventListener('beforeunload', function (e) {
+                // Check if any files are loaded or allocations made
+                if (quarterData.q1 || quarterData.q2 || quarterData.q3 || quarterData.q4 || allChatters.length > 0) {
+                    e.preventDefault(); // Required for most browsers
+                    e.returnValue = 'Are you sure you want to leave? All uploaded data will be lost.'; // Required for legacy browsers
+                }
+            });
         });
         // --- ⬆⬆⬆ END OF MODIFIED SECTION ⬆⬆⬆ ---
     </script>
